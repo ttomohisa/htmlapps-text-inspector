@@ -1,0 +1,1484 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f5f5f2">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; media-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Text Inspector | Browser Kitty</title>
+  <meta name="description" content="文字数だけでなく、文章の構成・頻出語・読みやすさまでブラウザ内で分析するローカル文章ツール。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2316624f'/%3E%3Cpath d='M18 18h28M18 27h19M18 36h24M18 45h14' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='45' cy='45' r='8' fill='%23fff'/%3E%3Cpath d='m51 51 5 5' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f2;
+      --surface: #ffffff;
+      --surface-muted: #f0f0ed;
+      --surface-hover: #e9e9e5;
+      --text: #20211f;
+      --muted: #666963;
+      --line: #dadbd6;
+      --line-strong: #bfc1ba;
+      --accent: #16624f;
+      --accent-hover: #0e503f;
+      --accent-soft: #e1f0ea;
+      --danger: #b3261e;
+      --warning: #986b18;
+      --warning-soft: #fff5dc;
+      --danger-soft: #fbe9e7;
+      --focus: #4d8bc7;
+      --shadow-sm: 0 1px 2px rgba(25, 28, 24, .08), 0 1px 6px rgba(25, 28, 24, .04);
+      --shadow-md: 0 12px 34px rgba(25, 28, 24, .10);
+      --radius: 12px;
+      --header-height: 66px;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", "Yu Gothic UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, textarea, input, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible, [role="tab"]:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--focus) 55%, transparent);
+      outline-offset: 2px;
+    }
+    .app-header {
+      position: sticky;
+      z-index: 30;
+      top: 0;
+      min-height: var(--header-height);
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(16px) saturate(1.2);
+    }
+    .header-inner {
+      width: min(1180px, 100%);
+      min-height: var(--header-height);
+      margin: 0 auto;
+      padding: 10px clamp(14px, 2.8vw, 30px);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      border-radius: 11px;
+      background: var(--accent);
+      color: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+    .brand-mark svg { width: 21px; height: 21px; display: block; }
+    .brand-copy { min-width: 0; }
+    .brand-name {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+      letter-spacing: .01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 7px;
+      padding: 1px 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--surface-muted);
+      font-size: 10px;
+      font-weight: 650;
+      vertical-align: 2px;
+    }
+    .brand-meta {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .language-button {
+      min-width: 0;
+      padding: 5px 1px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .02em;
+      cursor: pointer;
+      transition: color .16s ease, opacity .16s ease;
+    }
+    .language-button:hover { color: var(--text); }
+    .language-button:active { opacity: .65; }
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color .16s ease, background .16s ease, transform .16s ease;
+    }
+    .icon-button:hover { border-color: var(--line-strong); background: var(--surface-hover); }
+    .icon-button:active { transform: translateY(1px); }
+    .icon-button svg { width: 18px; height: 18px; display: block; }
+    .header-icon-button {
+      width: auto;
+      height: auto;
+      padding: 5px 1px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--muted);
+      transition: color .16s ease, opacity .16s ease;
+    }
+    .header-icon-button:hover { border-color: transparent; background: transparent; color: var(--text); }
+    .header-icon-button:active { transform: none; opacity: .65; }
+    .header-icon-button svg { width: 20px; height: 20px; }
+    .main {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 22px clamp(14px, 2.8vw, 30px) 54px;
+    }
+    #inputSection, #summarySection, #analysisSection { scroll-margin-top: calc(var(--header-height) + 12px); }
+    .page-intro {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 0 2px 18px;
+    }
+    .page-intro h2 { margin: 0; font-size: clamp(21px, 3vw, 26px); line-height: 1.3; letter-spacing: -.025em; }
+    .page-intro p { margin: 5px 0 0; max-width: 760px; color: var(--muted); font-size: 13px; }
+    .local-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      flex: 0 0 auto;
+      margin-top: 3px;
+      padding: 7px 10px;
+      border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+      border-radius: 999px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .local-badge svg { width: 15px; height: 15px; display: block; }
+    .workspace {
+      margin: 0 0 18px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+    .workspace-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 15px; }
+    .workspace h2 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
+    .workspace-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    textarea {
+      width: 100%;
+      min-height: 280px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      background: #fbfbf9;
+      color: var(--text);
+      line-height: 1.75;
+      font-size: 16px;
+    }
+    textarea:hover { border-color: var(--line-strong); }
+    textarea::placeholder { color: #92958f; }
+    .text-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 27px;
+      margin: 5px 2px 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .selection-info.active { color: var(--accent); font-weight: 700; }
+    .saved-indicator { opacity: 0; transition: opacity .2s ease; }
+    .saved-indicator.show { opacity: 1; }
+    .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 10px; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 7px; }
+    .button {
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color .16s ease, background .16s ease, transform .16s ease;
+    }
+    .button:hover { border-color: var(--line-strong); background: var(--surface-hover); }
+    .button:active { transform: translateY(1px); }
+    .button.primary { border-color: var(--accent); color: white; background: var(--accent); }
+    .button.primary:hover { border-color: var(--accent-hover); background: var(--accent-hover); }
+    .button.subtle-danger { color: var(--danger); }
+    .button svg { width: 15px; height: 15px; vertical-align: -2px; margin-right: 5px; }
+    .toolbar-actions { display: flex; align-items: center; gap: 8px; }
+    .history-controls { display: flex; align-items: center; gap: 6px; padding-right: 8px; margin-right: 1px; border-right: 1px solid var(--line); }
+    .history-button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 10px; }
+    .history-button svg { width: 16px; height: 16px; flex: 0 0 auto; margin-right: 0; }
+    .button:disabled { opacity: .42; cursor: not-allowed; transform: none; }
+    .button:disabled:hover { border-color: var(--line); background: var(--surface); }
+    .stats-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+    .stat-card { min-width: 0; padding: 12px 10px; border-radius: 12px; background: var(--surface-muted); }
+    .stat-value { display: block; overflow: hidden; text-overflow: ellipsis; font-size: clamp(19px, 2.8vw, 25px); font-weight: 800; line-height: 1.15; letter-spacing: -.02em; }
+    .stat-label { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .target-box { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+    .target-summary { min-width: 0; }
+    .target-line { display: flex; align-items: baseline; gap: 8px; }
+    .target-result { font-size: 14px; font-weight: 800; }
+    .target-note { color: var(--muted); font-size: 11px; }
+    .progress-track { height: 6px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: var(--surface-muted); }
+    .progress-bar { width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .15s ease; }
+    .progress-bar.over { background: var(--danger); }
+    .target-controls { display: flex; align-items: center; gap: 7px; }
+    .target-select, .target-input {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+      padding: 6px 9px;
+      color: var(--text);
+      font-size: 12px;
+    }
+    .target-input { width: 82px; }
+    .analysis-shell { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .tabs { display: flex; overflow-x: auto; gap: 3px; padding: 8px; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      flex: 0 0 auto;
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    .tab:hover { background: var(--surface-muted); color: var(--text); }
+    .tab[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); }
+    .tab-panel { display: none; padding: 18px; }
+    .tab-panel.active { display: block; }
+    .panel-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 15px; }
+    .panel-head h3 { margin: 0; font-size: 16px; letter-spacing: -.01em; }
+    .panel-head p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+    .metric { padding: 13px; border: 1px solid var(--line); border-radius: 11px; }
+    .metric-label { color: var(--muted); font-size: 10px; }
+    .metric-value { display: block; margin-top: 5px; font-size: 17px; font-weight: 800; }
+    .metric small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+    .composition-list { display: grid; gap: 12px; }
+    .composition-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) 66px; align-items: center; gap: 10px; }
+    .composition-name { font-size: 12px; font-weight: 700; }
+    .composition-track { height: 9px; overflow: hidden; border-radius: 999px; background: var(--surface-muted); }
+    .composition-fill { width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .18s ease; }
+    .composition-value { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; font-size: 11px; }
+    .frequency-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 14px; align-items: start; }
+    .frequency-list { display: grid; gap: 6px; }
+    .frequency-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 38px;
+      padding: 7px 10px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      background: var(--surface-muted);
+      text-align: left;
+      cursor: pointer;
+    }
+    .frequency-item:hover { border-color: var(--line-strong); }
+    .frequency-item.active { border-color: color-mix(in srgb, var(--accent) 38%, var(--line)); background: var(--accent-soft); }
+    .frequency-word { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 720; }
+    .frequency-count { color: var(--muted); font-size: 11px; }
+    .freq-note { padding: 12px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); font-size: 11px; }
+    .empty-state { padding: 24px 12px; color: var(--muted); text-align: center; font-size: 12px; }
+    .xray-tools { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+    .legend-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 10px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); }
+    .legend-dot.word { background: var(--accent); }
+    .xray-preview {
+      max-height: 430px;
+      overflow: auto;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfbf9;
+      line-height: 1.85;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .xray-preview .word-highlight { padding: 1px 2px; border-radius: 4px; background: var(--accent-soft); }
+    .xray-preview .long-sentence { text-decoration: underline wavy #b27b1f 1.5px; text-underline-offset: 3px; }
+    .xray-preview .issue-focus {
+      border-radius: 4px;
+      background: var(--warning-soft);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--warning) 40%, transparent);
+    }
+    .xray-preview .issue-focus.word-highlight { background: color-mix(in srgb, var(--accent-soft) 62%, var(--warning-soft)); }
+    .checks-list { display: grid; gap: 8px; }
+    .check-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; }
+    .check-card.actionable { width: 100%; color: inherit; background: var(--surface); font: inherit; text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+    .check-card.actionable:hover { border-color: var(--line-strong); background: #fbfbf9; }
+    .check-card.actionable:active { transform: translateY(1px); }
+    .check-card.actionable:focus-visible { outline: 3px solid color-mix(in srgb, var(--focus) 55%, transparent); outline-offset: 2px; }
+    .check-copy { min-width: 0; }
+    .check-jump { display: inline-flex; align-items: center; gap: 4px; margin-top: 7px; color: var(--accent); font-size: 10px; font-weight: 800; }
+    .check-jump svg { width: 13px; height: 13px; }
+    .check-icon { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
+    .check-card.warning .check-icon { background: var(--warning-soft); color: var(--warning); }
+    .check-card.danger .check-icon { background: var(--danger-soft); color: var(--danger); }
+    .check-card h4 { margin: 0; font-size: 12px; }
+    .check-card p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .style-meter { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 11px; border-radius: 10px; background: var(--surface-muted); }
+    .style-meter strong { font-size: 12px; }
+    .style-meter span { color: var(--muted); font-size: 11px; }
+    footer { width: min(1180px, 100%); margin: 0 auto; padding: 0 clamp(14px, 2.8vw, 30px) 34px; color: var(--muted); font-size: 11px; }
+    .footer-line { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); padding-top: 17px; }
+    dialog {
+      width: min(620px, calc(100vw - 28px));
+      max-height: min(760px, calc(100vh - 32px));
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow-md);
+    }
+    dialog::backdrop { background: rgba(24, 28, 25, .32); backdrop-filter: blur(2px); }
+    .dialog-head { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+    .dialog-head h2 { margin: 0; font-size: 16px; }
+    .dialog-body { padding: 16px; }
+    .confirm-copy { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 16px 16px; }
+    .button.confirm-danger { border-color: var(--danger); color: #fff; background: var(--danger); }
+    .button.confirm-danger:hover { border-color: #8f1e18; background: #8f1e18; }
+    .help-section + .help-section { margin-top: 18px; }
+    .help-section h3 { margin: 0 0 6px; font-size: 13px; }
+    .help-section p, .help-section li { color: var(--muted); font-size: 12px; }
+    .help-section p { margin: 0; }
+    .help-section ul { margin: 7px 0 0; padding-left: 20px; }
+    .app-toast {
+      position: fixed;
+      right: 18px;
+      bottom: calc(18px + env(safe-area-inset-bottom));
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: min(420px, calc(100vw - 36px));
+      padding: 10px 12px 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      box-shadow: var(--shadow-md);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .app-toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .app-toast-message { min-width: 0; flex: 1 1 auto; font-size: 12px; }
+    .toast-action { padding: 5px 7px; border: 0; background: transparent; color: var(--accent); font-size: 12px; font-weight: 800; cursor: pointer; }
+    .toast-close { width: 28px; height: 28px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+    /* Smartphone fixed bar adapted from components/mobile-bottom-bar.html. */
+    .mobile-bottom-shell, .app-mobile-bottom-bar, .mobile-meter { display: none; }
+    .mobile-meter {
+      width: 100%;
+      min-height: 42px;
+      padding: 7px 12px 6px;
+      border: 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mobile-meter:hover, .mobile-meter:focus-visible { background: var(--surface-muted); }
+    .mobile-meter-copy { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .mobile-meter-main { font-size: 14px; font-weight: 850; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .mobile-meter-sub { overflow: hidden; color: var(--muted); font-size: 10px; font-weight: 700; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+    .mobile-meter-progress { height: 3px; margin-top: 5px; overflow: hidden; border-radius: 999px; background: var(--surface-muted); }
+    .mobile-meter-progress[hidden] { display: none; }
+    .mobile-meter-progress-bar { width: 0; height: 100%; border-radius: inherit; background: var(--accent); transition: width .18s ease; }
+    .mobile-meter-progress-bar.over { background: var(--warning); }
+    .app-mobile-bottom-item {
+      position: relative;
+      min-width: 0;
+      min-height: 52px;
+      padding: 4px 3px;
+      border: 0;
+      border-radius: 11px;
+      background: transparent;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 2px;
+      font: inherit;
+      font-size: 10px;
+      font-weight: 750;
+      line-height: 1.15;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app-mobile-bottom-item svg { width: 20px; height: 20px; }
+    .app-mobile-bottom-item span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .app-mobile-bottom-item:hover,
+    .app-mobile-bottom-item:focus-visible,
+    .app-mobile-bottom-item.is-active,
+    .app-mobile-bottom-item[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
+    .app-mobile-bottom-item:disabled { opacity: .36; cursor: default; background: transparent; }
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .frequency-wrap { grid-template-columns: 1fr; }
+      .freq-note { order: -1; }
+    }
+    @media (max-width: 620px) {
+      :root { --header-height: 60px; }
+      .header-inner { gap: 10px; }
+      .brand-mark { width: 34px; height: 34px; border-radius: 10px; }
+      .brand-name { font-size: 15px; }
+      .brand-meta { display: none; }
+      .header-actions { gap: 10px; }
+      body.has-mobile-bottom-bar { padding-bottom: calc(106px + env(safe-area-inset-bottom)); }
+      .main { padding-top: 15px; padding-bottom: 34px; }
+      .page-intro { display: block; padding-bottom: 13px; }
+      .page-intro h2 { font-size: 20px; }
+      .page-intro p { font-size: 12px; }
+      .local-badge { display: none; }
+      .workspace { padding: 13px; border-radius: 14px; }
+      .workspace-head { margin-bottom: 10px; }
+      textarea { min-height: 235px; padding: 13px; font-size: 16px; }
+      .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+      .stat-card { padding: 10px 8px; }
+      .stat-value { font-size: 20px; }
+      .target-box { grid-template-columns: 1fr; gap: 9px; }
+      .target-controls { justify-content: flex-start; }
+      .analysis-shell { border-radius: 14px; }
+      /* Keep tabs in normal flow. Sticky + overflow:hidden on the shell created a 60px blank gap. */
+      .tabs { position: static; top: auto; z-index: auto; background: var(--surface); }
+      .tab-panel { padding: 14px 12px; }
+      .metric-grid { gap: 7px; }
+      .metric { padding: 10px; }
+      .composition-row { grid-template-columns: 85px minmax(0, 1fr) 56px; gap: 7px; }
+      .panel-head { align-items: start; }
+      .panel-head p { max-width: 58%; text-align: right; }
+      .toolbar { align-items: flex-start; }
+      .toolbar-actions { width: 100%; justify-content: space-between; }
+      .history-controls { flex: 1 1 auto; }
+      .history-button { flex: 1 1 0; justify-content: center; }
+      .button { min-height: 40px; }
+      .xray-preview { max-height: 360px; }
+      .mobile-bottom-shell {
+        position: fixed;
+        z-index: 80;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: block;
+        padding: 0 8px calc(5px + env(safe-area-inset-bottom));
+        border-top: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+        background: rgba(255, 255, 255, .95);
+        box-shadow: 0 -8px 24px rgba(20, 22, 20, .06);
+        backdrop-filter: blur(18px) saturate(1.35);
+      }
+      .mobile-meter { display: block; }
+      .app-mobile-bottom-bar {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 4px;
+        padding-top: 4px;
+      }
+      .app-toast { bottom: calc(116px + env(safe-area-inset-bottom)); }
+      footer { padding-bottom: 34px; }
+      .footer-line { display: block; }
+      .footer-line span + span { display: block; margin-top: 4px; }
+      dialog { margin: auto 14px 0; width: calc(100vw - 28px); max-height: min(80vh, 720px); border-radius: 18px 18px 0 0; }
+      .confirm-actions { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+    }
+    @media (max-width: 370px) {
+      .version-badge { display: none; }
+      .workspace h2 { font-size: 16px; }
+      .target-select { max-width: 160px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .001ms !important; animation-duration: .001ms !important; }
+    }
+  </style>
+</head>
+<body class="has-mobile-bottom-bar">
+  <!-- APP:BEGIN -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 6h14M5 10h10M5 14h12M5 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="17" r="3" stroke="currentColor" stroke-width="1.8"/><path d="m20.2 19.2 2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div class="brand-copy">
+          <h1 class="brand-name">Text Inspector <span class="version-badge">v1.0.0</span></h1>
+          <p class="brand-meta" data-i18n="brandMeta">文章を数える、測る、見つける</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="language-button" id="languageButton" aria-label="Switch language">EN</button>
+        <button type="button" class="icon-button header-icon-button" id="helpButton" aria-label="使い方と注意事項" title="使い方と注意事項">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.7 9a2.45 2.45 0 0 1 4.75.8c0 1.8-2.45 2.1-2.45 3.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="page-intro">
+      <div>
+        <h2 data-i18n="introTitle">文字数の先まで、文章を見える化。</h2>
+        <p data-i18n="introBody">テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。</p>
+      </div>
+      <div class="local-badge">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/></svg>
+        <span data-i18n="localBadge">ブラウザ内だけで処理</span>
+      </div>
+    </section>
+
+    <section class="workspace" id="inputSection" aria-labelledby="inputHeading">
+      <div class="workspace-head">
+        <div>
+          <h2 id="inputHeading" data-i18n="inputTitle">テキスト</h2>
+          <p data-i18n="inputHint">入力内容はこの端末のブラウザに自動保存されます。</p>
+        </div>
+      </div>
+      <textarea id="textInput" spellcheck="true" data-i18n-placeholder="placeholder" placeholder="ここに文章を入力、または貼り付け…" aria-label="分析するテキスト"></textarea>
+      <div class="text-meta">
+        <span class="selection-info" id="selectionInfo" data-i18n="noSelection">選択範囲なし</span>
+        <span class="saved-indicator" id="savedIndicator" data-i18n="saved">保存済み</span>
+      </div>
+      <div class="toolbar">
+        <div class="button-row">
+          <button class="button primary" type="button" id="copyButton"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="10" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M15 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8"/></svg><span data-i18n="copy">コピー</span></button>
+          <button class="button" type="button" id="sampleButton" data-i18n="sample">サンプル</button>
+        </div>
+        <div class="toolbar-actions">
+          <div class="history-controls" role="group" aria-label="編集履歴" data-i18n-aria-label="historyGroup">
+            <button class="button history-button" type="button" id="undoButton" disabled data-i18n-title="undoShortcut" title="元に戻す (Ctrl/Cmd+Z)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 8 5 12l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12h7a6 6 0 0 1 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-i18n="undo">元に戻す</span></button>
+            <button class="button history-button" type="button" id="redoButton" disabled data-i18n-title="redoShortcut" title="やり直す (Ctrl/Cmd+Shift+Z / Ctrl+Y)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 8 4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 12h-7a6 6 0 0 0-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-i18n="redo">やり直す</span></button>
+          </div>
+          <button class="button subtle-danger" type="button" id="clearButton" data-i18n="clear">クリア</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" id="summarySection" aria-labelledby="summaryHeading">
+      <div class="workspace-head">
+        <div>
+          <h2 id="summaryHeading" data-i18n="summaryTitle">ひと目でわかる</h2>
+          <p data-i18n="summaryHint">入力と同時に更新されます。</p>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><strong class="stat-value" id="charCount">0</strong><span class="stat-label" data-i18n="chars">文字</span></div>
+        <div class="stat-card"><strong class="stat-value" id="wordCount">0</strong><span class="stat-label" data-i18n="words">単語</span></div>
+        <div class="stat-card"><strong class="stat-value" id="sentenceCount">0</strong><span class="stat-label" data-i18n="sentences">文</span></div>
+        <div class="stat-card"><strong class="stat-value" id="paragraphCount">0</strong><span class="stat-label" data-i18n="paragraphs">段落</span></div>
+        <div class="stat-card"><strong class="stat-value" id="readingTime">0:00</strong><span class="stat-label" data-i18n="readTime">読了目安</span></div>
+        <div class="stat-card"><strong class="stat-value" id="speechTime">0:00</strong><span class="stat-label" data-i18n="speechTime">音読目安</span></div>
+      </div>
+      <div class="target-box">
+        <div class="target-summary">
+          <div class="target-line"><strong class="target-result" id="targetResult">目標文字数なし</strong><span class="target-note" id="targetPercent"></span></div>
+          <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="targetProgress"></div></div>
+        </div>
+        <div class="target-controls">
+          <label for="targetSelect" class="target-note" data-i18n="target">目標</label>
+          <select class="target-select" id="targetSelect" aria-label="目標文字数">
+            <option value="0" data-i18n="targetNone">なし</option>
+            <option value="140">140</option>
+            <option value="400">400</option>
+            <option value="800">800</option>
+            <option value="1000">1,000</option>
+            <option value="custom" data-i18n="custom">自由入力</option>
+          </select>
+          <input class="target-input" id="targetInput" type="number" min="1" max="1000000" inputmode="numeric" value="400" hidden aria-label="自由入力の目標文字数">
+        </div>
+      </div>
+    </section>
+
+    <section class="analysis-shell" id="analysisSection" aria-label="文章分析">
+      <div class="tabs" role="tablist" aria-label="分析項目">
+        <button class="tab" role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" data-tab="overview" data-i18n="tabOverview">概要</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-composition" id="tab-composition" data-tab="composition" data-i18n="tabComposition">構成</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-frequency" id="tab-frequency" data-tab="frequency" data-i18n="tabFrequency">頻出語</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-xray" id="tab-xray" data-tab="xray" data-i18n="tabXray">X-Ray</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-checks" id="tab-checks" data-tab="checks" data-i18n="tabChecks">文章チェック</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+        <div class="panel-head"><div><h3 data-i18n="overviewTitle">文章の基本情報</h3><p data-i18n="overviewDesc">カウント条件の違いもまとめて確認できます。</p></div></div>
+        <div class="metric-grid">
+          <div class="metric"><span class="metric-label" data-i18n="charsWithSpace">文字数（空白込み）</span><strong class="metric-value" id="mChars">0</strong></div>
+          <div class="metric"><span class="metric-label" data-i18n="charsNoSpace">文字数（空白除外）</span><strong class="metric-value" id="mCharsNoSpace">0</strong></div>
+          <div class="metric"><span class="metric-label" data-i18n="lines">行数</span><strong class="metric-value" id="mLines">0</strong></div>
+          <div class="metric"><span class="metric-label" data-i18n="avgSentence">1文の平均</span><strong class="metric-value" id="mAvgSentence">0</strong><small data-i18n="unitChars">文字</small></div>
+          <div class="metric"><span class="metric-label" data-i18n="longestSentence">最長の文</span><strong class="metric-value" id="mLongest">0</strong><small data-i18n="unitChars">文字</small></div>
+          <div class="metric"><span class="metric-label" data-i18n="manuscript">原稿用紙換算</span><strong class="metric-value" id="mManuscript">0</strong><small data-i18n="sheetsApprox">枚（約）</small></div>
+          <div class="metric"><span class="metric-label" data-i18n="uniqueWords">異なる単語</span><strong class="metric-value" id="mUnique">0</strong></div>
+          <div class="metric"><span class="metric-label" data-i18n="topWord">最多の単語</span><strong class="metric-value" id="mTopWord">—</strong><small id="mTopWordCount"></small></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-composition" role="tabpanel" aria-labelledby="tab-composition">
+        <div class="panel-head"><div><h3 data-i18n="compositionTitle">文字の構成</h3><p data-i18n="compositionDesc">空白を除いた文字に対する割合です。</p></div></div>
+        <div class="composition-list" id="compositionList"></div>
+      </div>
+
+      <div class="tab-panel" id="panel-frequency" role="tabpanel" aria-labelledby="tab-frequency">
+        <div class="panel-head"><div><h3 data-i18n="frequencyTitle">よく使っている単語</h3><p data-i18n="frequencyDesc">クリックすると X-Ray でその単語を強調します。</p></div></div>
+        <div class="frequency-wrap">
+          <div class="frequency-list" id="frequencyList"></div>
+          <div class="freq-note" id="frequencyNote" data-i18n="frequencyNote">日本語はブラウザの Intl.Segmenter を優先して分かち書きします。助詞など一部の一般語はランキングから除外します。</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-xray" role="tabpanel" aria-labelledby="tab-xray">
+        <div class="panel-head"><div><h3 data-i18n="xrayTitle">Text X-Ray</h3><p data-i18n="xrayDesc">長い文と、選んだ頻出語を本文上で見つけます。</p></div></div>
+        <div class="xray-tools">
+          <span class="legend-chip"><span class="legend-dot"></span><span data-i18n="legendLong">長い文（80文字超）</span></span>
+          <span class="legend-chip"><span class="legend-dot word"></span><span id="selectedWordLegend" data-i18n="legendWord">頻出語を選択すると強調</span></span>
+        </div>
+        <div class="xray-preview" id="xrayPreview"><div class="empty-state" data-i18n="emptyPreview">テキストを入力するとここに表示されます。</div></div>
+      </div>
+
+      <div class="tab-panel" id="panel-checks" role="tabpanel" aria-labelledby="tab-checks">
+        <div class="panel-head"><div><h3 data-i18n="checksTitle">文章チェック</h3><p data-i18n="checksDesc">機械的に見つけられる「気になる点」を軽くチェックします。</p></div></div>
+        <div class="checks-list" id="checksList"></div>
+        <div class="style-meter"><strong data-i18n="styleLabel">文体</strong><span id="styleResult">—</span></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="mobile-bottom-shell" id="mobileBottomShell">
+    <button class="mobile-meter" id="mobileMeter" type="button" aria-label="文字数サマリー" data-i18n-aria-label="mobileMeterLabel">
+      <span class="mobile-meter-copy">
+        <strong class="mobile-meter-main" id="mobileMeterMain">0文字</strong>
+        <span class="mobile-meter-sub" id="mobileMeterSub">0単語</span>
+      </span>
+      <span class="mobile-meter-progress" id="mobileMeterProgress" aria-hidden="true" hidden><span class="mobile-meter-progress-bar" id="mobileMeterProgressBar"></span></span>
+    </button>
+    <nav class="app-mobile-bottom-bar" id="appMobileBottomBar" aria-label="スマホ操作" data-i18n-aria-label="mobileNavLabel">
+      <button class="app-mobile-bottom-item is-active" type="button" data-mobile-key="input" data-mobile-target="inputSection" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+        <span data-i18n="mobileNavInput">入力</span>
+      </button>
+      <button class="app-mobile-bottom-item" type="button" data-mobile-key="analysis" data-mobile-target="analysisSection">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 18V9M10 18V5M15 18v-7M20 18V8"/></svg>
+        <span data-i18n="mobileNavAnalysis">分析</span>
+      </button>
+      <button class="app-mobile-bottom-item" id="mobileUndoButton" type="button" data-mobile-key="undo" data-mobile-action="undo" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 8 5 12l4 4"/><path d="M6 12h7a6 6 0 0 1 6 6"/></svg>
+        <span data-i18n="mobileNavUndo">戻す</span>
+      </button>
+      <button class="app-mobile-bottom-item" id="mobileRedoButton" type="button" data-mobile-key="redo" data-mobile-action="redo" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 8 4 4-4 4"/><path d="M18 12h-7a6 6 0 0 0-6 6"/></svg>
+        <span data-i18n="mobileNavRedo">進む</span>
+      </button>
+    </nav>
+  </div>
+
+  <footer>
+    <div class="footer-line">
+      <span>Browser Kitty · Text Inspector</span>
+      <span id="buildInfo">v1.0.0 · 2026-08-23 06:39 UTC</span>
+    </div>
+  </footer>
+
+  <dialog id="confirmDialog" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+    <div class="dialog-head">
+      <h2 id="confirmTitle">確認</h2>
+      <button type="button" class="icon-button" id="confirmClose" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <p class="confirm-copy" id="confirmMessage"></p>
+    </div>
+    <div class="confirm-actions">
+      <button class="button" type="button" id="confirmCancel" data-i18n="cancel">キャンセル</button>
+      <button class="button" type="button" id="confirmAccept">実行</button>
+    </div>
+  </dialog>
+
+  <dialog id="helpDialog">
+    <div class="dialog-head">
+      <h2 data-i18n="helpTitle">使い方と注意事項</h2>
+      <button type="button" class="icon-button" id="helpClose" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <!-- APP:HELP:BEGIN -->
+      <section class="help-section"><h3 data-i18n="helpHowTitle">使い方</h3><ul><li data-i18n="helpHow1">テキスト欄に文章を入力・貼り付けすると、すぐに各指標を更新します。</li><li data-i18n="helpHow2">「頻出語」の単語を押すと、X-Ray 内の該当箇所を強調します。</li><li data-i18n="helpHow3">文章チェックの項目を押すと、X-Ray の該当箇所へ直接ジャンプします。</li><li data-i18n="helpHow4">目標文字数を設定すると、残り文字数または超過文字数を表示します。スマホでは固定バー上部のミニメーターでも常に確認できます。</li><li data-i18n="helpHow5">スマホの固定バーから入力・分析へ移動でき、元に戻す / やり直すも実行できます。キーボードショートカットにも対応し、サンプル・クリアは実行前に確認します。</li></ul></section>
+      <section class="help-section"><h3 data-i18n="helpPrivacyTitle">プライバシー</h3><p data-i18n="helpPrivacy">入力した文章はサーバーへ送信しません。分析はすべてブラウザ内で行い、入力内容は復元用として localStorage に保存します。</p></section>
+      <section class="help-section"><h3 data-i18n="helpNotesTitle">注意事項</h3><ul><li data-i18n="helpNotes1">単語分割、読了時間、文体判定は目安です。日本語の形態素解析を行う専用辞書は使用していません。</li><li data-i18n="helpNotes2">ブラウザのサイトデータを削除すると、自動保存した文章も消えます。重要な原稿の保管用途には使わないでください。</li><li data-i18n="helpNotes3">X-Ray の「長い文」は 80 文字超を機械的に示すもので、文章の良し悪しを断定するものではありません。</li></ul></section>
+      <!-- APP:HELP:END -->
+    </div>
+  </dialog>
+
+  <div class="app-toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
+    <span class="app-toast-message" id="toastMessage"></span>
+    <button class="toast-action" type="button" id="toastAction" hidden data-i18n="undo">元に戻す</button>
+    <button class="toast-close" type="button" id="toastClose" aria-label="閉じる">×</button>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const STORAGE_KEY = 'browser-kitty:text-inspector:v1';
+      const SETTINGS_KEY = 'browser-kitty:text-inspector:settings:v1';
+      const MAX_LIVE_ANALYSIS = 200000;
+      const LONG_SENTENCE_THRESHOLD = 80;
+      const HISTORY_MAX_ENTRIES = 50;
+      const HISTORY_MAX_CHARS = 4000000;
+
+      const translations = {
+        ja: {
+          brandMeta: '文章を数える、測る、見つける', introTitle: '文字数の先まで、文章を見える化。', introBody: 'テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。', localBadge: 'ブラウザ内だけで処理',
+          inputTitle: 'テキスト', inputHint: '入力内容はこの端末のブラウザに自動保存されます。', placeholder: 'ここに文章を入力、または貼り付け…', noSelection: '選択範囲なし', selection: '選択: {chars}文字 / {words}単語', saved: '保存済み', copy: 'コピー', sample: 'サンプル', clear: 'クリア', undo: '元に戻す', redo: 'やり直す', historyGroup: '編集履歴', undoShortcut: '元に戻す (Ctrl/Cmd+Z)', redoShortcut: 'やり直す (Ctrl/Cmd+Shift+Z / Ctrl+Y)', cancel: 'キャンセル',
+          summaryTitle: 'ひと目でわかる', summaryHint: '入力と同時に更新されます。', chars: '文字', words: '単語', sentences: '文', paragraphs: '段落', readTime: '読了目安', speechTime: '音読目安', target: '目標', targetNone: 'なし', custom: '自由入力', targetOff: '目標文字数なし', targetRemain: 'あと {count} 文字', targetOver: '{count} 文字オーバー', targetExact: '目標ぴったり', targetPercent: '{percent}%',
+          tabOverview: '概要', tabComposition: '構成', tabFrequency: '頻出語', tabXray: 'X-Ray', tabChecks: '文章チェック', overviewTitle: '文章の基本情報', overviewDesc: 'カウント条件の違いもまとめて確認できます。', charsWithSpace: '文字数（空白込み）', charsNoSpace: '文字数（空白除外）', lines: '行数', avgSentence: '1文の平均', longestSentence: '最長の文', manuscript: '原稿用紙換算', uniqueWords: '異なる単語', topWord: '最多の単語', unitChars: '文字', sheetsApprox: '枚（約）', times: '{count}回',
+          compositionTitle: '文字の構成', compositionDesc: '空白を除いた文字に対する割合です。', compKanji: '漢字', compHiragana: 'ひらがな', compKatakana: 'カタカナ', compLatin: '英数字', compPunctuation: '記号・その他',
+          frequencyTitle: 'よく使っている単語', frequencyDesc: 'クリックすると X-Ray でその単語を強調します。', frequencyNote: '日本語はブラウザの Intl.Segmenter を優先して分かち書きします。助詞など一部の一般語はランキングから除外します。', noFrequency: '頻出語を表示するには、もう少し文章を入力してください。',
+          xrayTitle: 'Text X-Ray', xrayDesc: '長い文と、選んだ頻出語を本文上で見つけます。', legendLong: '長い文（80文字超）', legendWord: '頻出語を選択すると強調', legendSelected: '「{word}」を強調中', emptyPreview: 'テキストを入力するとここに表示されます。',
+          checksTitle: '文章チェック', checksDesc: '機械的に見つけられる「気になる点」を軽くチェックします。', styleLabel: '文体', checkEmptyTitle: 'まだチェックする文章がありません', checkEmptyBody: '文章を入力すると、長い文や表記の傾向を確認します。', checkGoodTitle: '大きな引っかかりは見つかりませんでした', checkGoodBody: '現在の簡易チェックでは、目立った項目はありません。', checkLongTitle: '長い文が {count} 文あります', checkLongBody: '80文字を超える文を X-Ray で下線表示しています。分割できる箇所がないか確認してみてください。', checkVeryLongTitle: 'かなり長い文があります', checkVeryLongBody: '最長 {count} 文字です。読み手が途中で迷わないか確認すると安心です。', checkRepeatTitle: '同じ単語が続いています', checkRepeatBody: '「{word}」が連続する箇所があります。意図した繰り返しか確認してください。', checkSpaceTitle: '連続した空白があります', checkSpaceBody: '{count} 箇所で空白が2文字以上続いています。', checkPuncTitle: '同じ句読点・記号が続いています', checkPuncBody: '{count} 箇所見つかりました。装飾目的でなければ整理できます。', checkJump: '該当箇所を見る', mobileMeterLabel: '文字数サマリー。押すと集計へ移動します', mobileNavLabel: 'スマホ操作', mobileNavInput: '入力', mobileNavAnalysis: '分析', mobileNavUndo: '戻す', mobileNavRedo: '進む', mobileChars: '{count}文字', mobileWords: '{count}単語', mobileTargetRemain: 'あと{count}文字', mobileTargetOver: '{count}文字超過', mobileTargetExact: '目標ちょうど', stylePolite: '「です・ます」調が中心', stylePlain: '「だ・である」調が中心', styleMixed: '「です・ます」調と「だ・である」調が混在', styleUnknown: '判定できる文末がまだ少なめです',
+          helpTitle: '使い方と注意事項', helpHowTitle: '使い方', helpHow1: 'テキスト欄に文章を入力・貼り付けすると、すぐに各指標を更新します。', helpHow2: '「頻出語」の単語を押すと、X-Ray 内の該当箇所を強調します。', helpHow3: '文章チェックの項目を押すと、X-Ray の該当箇所へ直接ジャンプします。', helpHow4: '目標文字数を設定すると、残り文字数または超過文字数を表示します。スマホでは固定バー上部のミニメーターでも常に確認できます。', helpHow5: 'スマホの固定バーから入力・分析へ移動でき、元に戻す / やり直すも実行できます。キーボードショートカットにも対応し、サンプル・クリアは実行前に確認します。', helpPrivacyTitle: 'プライバシー', helpPrivacy: '入力した文章はサーバーへ送信しません。分析はすべてブラウザ内で行い、入力内容は復元用として localStorage に保存します。', helpNotesTitle: '注意事項', helpNotes1: '単語分割、読了時間、文体判定は目安です。日本語の形態素解析を行う専用辞書は使用していません。', helpNotes2: 'ブラウザのサイトデータを削除すると、自動保存した文章も消えます。重要な原稿の保管用途には使わないでください。', helpNotes3: 'X-Ray の「長い文」は 80 文字超を機械的に示すもので、文章の良し悪しを断定するものではありません。',
+          confirmSampleTitle: 'サンプルを読み込みますか？', confirmSampleMessage: '現在の文章をサンプル文章に置き換えます。あとから「元に戻す」で復元できます。', confirmSampleAction: 'サンプルを読み込む', confirmClearTitle: '文章をクリアしますか？', confirmClearMessage: '入力中の文章を空にします。あとから「元に戻す」で復元できます。', confirmClearAction: 'クリアする', redoDone: 'やり直しました', undoDone: '元に戻しました', copied: 'コピーしました', copyFailed: 'コピーできませんでした', cleared: '文章をクリアしました', sampleLoaded: 'サンプルを読み込みました', restored: '元に戻しました', analysisLimited: '20万文字を超えたため、頻出語・X-Ray・文章チェックは先頭20万文字を分析しています。'
+        },
+        en: {
+          brandMeta: 'Count, measure, and inspect your writing', introTitle: 'See beyond the character count.', introBody: 'Paste text to inspect counts, reading time, character mix, frequent words, long sentences, and writing-style tendencies in real time.', localBadge: 'Processed only in your browser',
+          inputTitle: 'Text', inputHint: 'Your input is autosaved in this browser on this device.', placeholder: 'Type or paste text here…', noSelection: 'No text selected', selection: 'Selection: {chars} chars / {words} words', saved: 'Saved', copy: 'Copy', sample: 'Sample', clear: 'Clear', undo: 'Undo', redo: 'Redo', historyGroup: 'Edit history', undoShortcut: 'Undo (Ctrl/Cmd+Z)', redoShortcut: 'Redo (Ctrl/Cmd+Shift+Z / Ctrl+Y)', cancel: 'Cancel',
+          summaryTitle: 'At a glance', summaryHint: 'Updates while you type.', chars: 'Characters', words: 'Words', sentences: 'Sentences', paragraphs: 'Paragraphs', readTime: 'Read time', speechTime: 'Read aloud', target: 'Target', targetNone: 'None', custom: 'Custom', targetOff: 'No character target', targetRemain: '{count} characters left', targetOver: '{count} over target', targetExact: 'Target reached exactly', targetPercent: '{percent}%',
+          tabOverview: 'Overview', tabComposition: 'Composition', tabFrequency: 'Frequent words', tabXray: 'X-Ray', tabChecks: 'Checks', overviewTitle: 'Text basics', overviewDesc: 'See several counting methods together.', charsWithSpace: 'Characters (with spaces)', charsNoSpace: 'Characters (no whitespace)', lines: 'Lines', avgSentence: 'Average sentence', longestSentence: 'Longest sentence', manuscript: '400-char sheets', uniqueWords: 'Unique words', topWord: 'Top word', unitChars: 'chars', sheetsApprox: 'sheets (approx.)', times: '{count}×',
+          compositionTitle: 'Character composition', compositionDesc: 'Share of non-whitespace characters.', compKanji: 'Kanji', compHiragana: 'Hiragana', compKatakana: 'Katakana', compLatin: 'Latin / digits', compPunctuation: 'Symbols / other',
+          frequencyTitle: 'Words you use often', frequencyDesc: 'Select a word to highlight it in X-Ray.', frequencyNote: 'Japanese uses Intl.Segmenter when available. Some common particles and stop words are excluded from the ranking.', noFrequency: 'Enter a little more text to show frequent words.',
+          xrayTitle: 'Text X-Ray', xrayDesc: 'Find long sentences and the frequent word you selected.', legendLong: 'Long sentence (>80 chars)', legendWord: 'Select a frequent word to highlight', legendSelected: 'Highlighting “{word}”', emptyPreview: 'Your text will appear here.',
+          checksTitle: 'Writing checks', checksDesc: 'Lightweight mechanical checks for things worth reviewing.', styleLabel: 'Style', checkEmptyTitle: 'Nothing to check yet', checkEmptyBody: 'Enter text to inspect sentence length and writing patterns.', checkGoodTitle: 'No obvious issues found', checkGoodBody: 'The current lightweight checks did not find anything notable.', checkLongTitle: '{count} long sentences found', checkLongBody: 'Sentences over 80 characters are underlined in X-Ray. Consider whether any can be split.', checkVeryLongTitle: 'A very long sentence was found', checkVeryLongBody: 'The longest sentence is {count} characters. Check whether the reader can follow it comfortably.', checkRepeatTitle: 'A word is repeated back-to-back', checkRepeatBody: '“{word}” appears consecutively. Check whether the repetition is intentional.', checkSpaceTitle: 'Repeated spaces found', checkSpaceBody: '{count} places contain two or more consecutive spaces.', checkPuncTitle: 'Repeated punctuation found', checkPuncBody: '{count} places contain repeated punctuation or symbols.', checkJump: 'View occurrence', mobileMeterLabel: 'Character count summary. Activate to jump to the summary.', mobileNavLabel: 'Mobile actions', mobileNavInput: 'Input', mobileNavAnalysis: 'Analysis', mobileNavUndo: 'Undo', mobileNavRedo: 'Redo', mobileChars: '{count} chars', mobileWords: '{count} words', mobileTargetRemain: '{count} left', mobileTargetOver: '{count} over', mobileTargetExact: 'On target', stylePolite: 'Mostly polite Japanese (です・ます)', stylePlain: 'Mostly plain Japanese (だ・である)', styleMixed: 'Mixed polite and plain Japanese endings', styleUnknown: 'Not enough sentence endings to classify',
+          helpTitle: 'How to use & notes', helpHowTitle: 'How to use', helpHow1: 'Type or paste text and the metrics update immediately.', helpHow2: 'Select a frequent word to highlight it in X-Ray.', helpHow3: 'Activate an actionable writing check to jump directly to the matching X-Ray occurrence.', helpHow4: 'Set a character target to see how many characters remain or exceed it. On phones, the mini meter at the top of the fixed bottom bar keeps this visible while you work.', helpHow5: 'The phone bottom bar also jumps to Input / Analysis and provides Undo / Redo. Sample and Clear ask for confirmation before replacing text.', helpPrivacyTitle: 'Privacy', helpPrivacy: 'Your text is never sent to a server. Analysis happens entirely in the browser, and the input is stored in localStorage so it can be restored.', helpNotesTitle: 'Notes', helpNotes1: 'Word segmentation, reading times, and style detection are estimates. No full Japanese morphological dictionary is used.', helpNotes2: 'Clearing browser site data also removes the autosaved text. Do not rely on this tool as the only copy of important writing.', helpNotes3: 'X-Ray mechanically marks sentences over 80 characters; it does not judge whether the writing is good or bad.',
+          confirmSampleTitle: 'Load the sample?', confirmSampleMessage: 'This replaces the current text with the sample. You can restore it later with Undo.', confirmSampleAction: 'Load sample', confirmClearTitle: 'Clear the text?', confirmClearMessage: 'This removes the current text. You can restore it later with Undo.', confirmClearAction: 'Clear text', redoDone: 'Redone', undoDone: 'Undone', copied: 'Copied', copyFailed: 'Could not copy', cleared: 'Text cleared', sampleLoaded: 'Sample loaded', restored: 'Restored', analysisLimited: 'For inputs over 200,000 characters, frequent words, X-Ray, and writing checks analyze only the first 200,000 characters.'
+        }
+      };
+
+      const jaStopWords = new Set('これ それ あれ ここ そこ ため よう もの こと ところ そして しかし また ただ ので のに から まで より など です ます でした ません する した して いる ある なる なった この その あの どの として について による により でも では という といった できる でき なく ない なる なら へ の が を に は と で も や か ね よ'.split(' '));
+      const enStopWords = new Set('the a an and or but if then else of to in on at for from with without as by is are was were be been being it its this that these those i you he she we they me him her us them my your our their not no yes do does did done can could should would may might will just very more most less many much some any all each every into over under again also than so because while where when what who how'.split(' '));
+
+      const state = { lang: 'ja', target: 0, selectedWord: '', focusRange: null, undo: null, saveTimer: null, analysisTimer: null, historyTimer: null, history: [], historyIndex: -1, applyingHistory: false, confirmResolver: null };
+      const $ = (id) => document.getElementById(id);
+      const els = {
+        input: $('textInput'), language: $('languageButton'), help: $('helpButton'), helpDialog: $('helpDialog'), helpClose: $('helpClose'),
+        copy: $('copyButton'), sample: $('sampleButton'), clear: $('clearButton'), undoButton: $('undoButton'), redoButton: $('redoButton'), selection: $('selectionInfo'), saved: $('savedIndicator'),
+        charCount: $('charCount'), wordCount: $('wordCount'), sentenceCount: $('sentenceCount'), paragraphCount: $('paragraphCount'), readingTime: $('readingTime'), speechTime: $('speechTime'),
+        targetSelect: $('targetSelect'), targetInput: $('targetInput'), targetResult: $('targetResult'), targetPercent: $('targetPercent'), targetProgress: $('targetProgress'),
+        mChars: $('mChars'), mCharsNoSpace: $('mCharsNoSpace'), mLines: $('mLines'), mAvgSentence: $('mAvgSentence'), mLongest: $('mLongest'), mManuscript: $('mManuscript'), mUnique: $('mUnique'), mTopWord: $('mTopWord'), mTopWordCount: $('mTopWordCount'),
+        compositionList: $('compositionList'), frequencyList: $('frequencyList'), frequencyNote: $('frequencyNote'), xrayPreview: $('xrayPreview'), selectedWordLegend: $('selectedWordLegend'), checksList: $('checksList'), styleResult: $('styleResult'),
+        mobileMeter: $('mobileMeter'), mobileMeterMain: $('mobileMeterMain'), mobileMeterSub: $('mobileMeterSub'), mobileMeterProgress: $('mobileMeterProgress'), mobileMeterProgressBar: $('mobileMeterProgressBar'),
+        mobileBottomBar: $('appMobileBottomBar'), mobileUndoButton: $('mobileUndoButton'), mobileRedoButton: $('mobileRedoButton'),
+        toast: $('toast'), toastMessage: $('toastMessage'), toastAction: $('toastAction'), toastClose: $('toastClose'), confirmDialog: $('confirmDialog'), confirmTitle: $('confirmTitle'), confirmMessage: $('confirmMessage'), confirmClose: $('confirmClose'), confirmCancel: $('confirmCancel'), confirmAccept: $('confirmAccept')
+      };
+
+      function t(key, vars = {}) {
+        const dict = translations[state.lang] || translations.ja;
+        let value = dict[key] ?? translations.ja[key] ?? key;
+        Object.keys(vars).forEach((name) => { value = value.replaceAll(`{${name}}`, String(vars[name])); });
+        return value;
+      }
+
+      function formatNumber(value) { return Number(value || 0).toLocaleString(state.lang === 'ja' ? 'ja-JP' : 'en-US'); }
+      function unicodeLength(text) { return Array.from(text).length; }
+      function nonWhitespaceLength(text) { return Array.from(text).filter((c) => !/\s/u.test(c)).length; }
+
+      function getWords(text) {
+        if (!text.trim()) return [];
+        if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+          try {
+            const locale = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(text) ? 'ja' : 'en';
+            const segmenter = new Intl.Segmenter(locale, { granularity: 'word' });
+            return Array.from(segmenter.segment(text)).filter((part) => part.isWordLike).map((part) => part.segment);
+          } catch (_) {}
+        }
+        return text.match(/[\p{L}\p{N}]+/gu) || [];
+      }
+
+      function getSentenceSegments(text) {
+        if (!text.trim()) return [];
+        if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+          try {
+            const locale = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(text) ? 'ja' : 'en';
+            const segmenter = new Intl.Segmenter(locale, { granularity: 'sentence' });
+            return Array.from(segmenter.segment(text))
+              .filter((part) => part.segment.trim())
+              .map((part) => ({ text: part.segment, start: part.index, end: part.index + part.segment.length }));
+          } catch (_) {}
+        }
+        const parts = text.split(/(?<=[。！？!?\.])\s*|\n+/u).filter((part) => part.trim());
+        let cursor = 0;
+        return parts.map((part) => {
+          const start = text.indexOf(part, cursor);
+          const safeStart = start >= 0 ? start : cursor;
+          cursor = safeStart + part.length;
+          return { text: part, start: safeStart, end: cursor };
+        });
+      }
+
+      function getSentences(text) { return getSentenceSegments(text).map((part) => part.text); }
+
+      function getParagraphs(text) { return text.trim() ? text.trim().split(/\n\s*\n+/u).filter((part) => part.trim()) : []; }
+      function getLineCount(text) { return text.length ? text.split(/\r\n|\r|\n/u).length : 0; }
+
+      function getFrequency(words) {
+        const counts = new Map();
+        for (const raw of words) {
+          const word = raw.normalize('NFKC').toLocaleLowerCase(state.lang === 'ja' ? 'ja-JP' : 'en-US').trim();
+          if (unicodeLength(word) < 2) continue;
+          if (jaStopWords.has(word) || enStopWords.has(word)) continue;
+          if (/^\d+$/u.test(word)) continue;
+          counts.set(word, (counts.get(word) || 0) + 1);
+        }
+        return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], state.lang)).slice(0, 20);
+      }
+
+      function countScripts(text) {
+        const result = { kanji: 0, hiragana: 0, katakana: 0, latin: 0, punctuation: 0 };
+        for (const c of Array.from(text)) {
+          if (/\s/u.test(c)) continue;
+          if (/\p{Script=Han}/u.test(c)) result.kanji++;
+          else if (/\p{Script=Hiragana}/u.test(c)) result.hiragana++;
+          else if (/\p{Script=Katakana}/u.test(c)) result.katakana++;
+          else if (/[\p{Script=Latin}\p{N}]/u.test(c)) result.latin++;
+          else result.punctuation++;
+        }
+        return result;
+      }
+
+      function estimateTime(text, words, mode) {
+        const japaneseChars = Array.from(text).filter((c) => /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(c)).length;
+        const latinWords = words.filter((word) => /\p{Script=Latin}/u.test(word)).length;
+        const minutes = mode === 'speech' ? japaneseChars / 300 + latinWords / 150 : japaneseChars / 500 + latinWords / 220;
+        const seconds = Math.round(minutes * 60);
+        if (!seconds) return '0:00';
+        const min = Math.floor(seconds / 60);
+        const sec = seconds % 60;
+        return `${min}:${String(sec).padStart(2, '0')}`;
+      }
+
+      function buildAnalysis(fullText) {
+        const text = fullText.slice(0, MAX_LIVE_ANALYSIS);
+        const chars = unicodeLength(fullText);
+        const wordsFull = getWords(fullText);
+        const sentencesFull = getSentences(fullText);
+        const paragraphs = getParagraphs(fullText);
+        const words = fullText.length > MAX_LIVE_ANALYSIS ? getWords(text) : wordsFull;
+        const sentenceSegments = getSentenceSegments(text);
+        const sentences = sentenceSegments.map((part) => part.text);
+        const sentenceLengths = sentences.map((s) => unicodeLength(s.trim()));
+        const frequency = getFrequency(words);
+        return {
+          fullText, text, chars, charsNoSpace: nonWhitespaceLength(fullText), wordsFull, sentencesFull, paragraphs,
+          lines: getLineCount(fullText), words, sentences, sentenceSegments, sentenceLengths, frequency, scripts: countScripts(fullText),
+          limited: fullText.length > MAX_LIVE_ANALYSIS,
+          longest: sentenceLengths.length ? Math.max(...sentenceLengths) : 0,
+          avgSentence: sentenceLengths.length ? sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length : 0
+        };
+      }
+
+      function renderSummary(a) {
+        els.charCount.textContent = formatNumber(a.chars);
+        els.wordCount.textContent = formatNumber(a.wordsFull.length);
+        els.sentenceCount.textContent = formatNumber(a.sentencesFull.length);
+        els.paragraphCount.textContent = formatNumber(a.paragraphs.length);
+        els.readingTime.textContent = estimateTime(a.fullText, a.wordsFull, 'read');
+        els.speechTime.textContent = estimateTime(a.fullText, a.wordsFull, 'speech');
+        els.mChars.textContent = formatNumber(a.chars);
+        els.mCharsNoSpace.textContent = formatNumber(a.charsNoSpace);
+        els.mLines.textContent = formatNumber(a.lines);
+        els.mAvgSentence.textContent = a.avgSentence ? a.avgSentence.toLocaleString(state.lang, { maximumFractionDigits: 1 }) : '0';
+        els.mLongest.textContent = formatNumber(a.longest);
+        els.mManuscript.textContent = a.chars ? (a.chars / 400).toLocaleString(state.lang, { maximumFractionDigits: 1 }) : '0';
+        els.mUnique.textContent = formatNumber(new Set(a.words.map((w) => w.normalize('NFKC').toLocaleLowerCase())).size);
+        if (a.frequency.length) {
+          els.mTopWord.textContent = a.frequency[0][0];
+          els.mTopWordCount.textContent = t('times', { count: formatNumber(a.frequency[0][1]) });
+        } else {
+          els.mTopWord.textContent = '—';
+          els.mTopWordCount.textContent = '';
+        }
+      }
+
+      function renderTarget(chars) {
+        const target = getTargetValue();
+        state.target = target;
+        if (!target) {
+          els.targetResult.textContent = t('targetOff');
+          els.targetPercent.textContent = '';
+          els.targetProgress.style.width = '0%';
+          els.targetProgress.classList.remove('over');
+          return;
+        }
+        const diff = target - chars;
+        const percent = Math.round((chars / target) * 100);
+        els.targetResult.textContent = diff > 0 ? t('targetRemain', { count: formatNumber(diff) }) : diff < 0 ? t('targetOver', { count: formatNumber(Math.abs(diff)) }) : t('targetExact');
+        els.targetPercent.textContent = t('targetPercent', { percent: formatNumber(percent) });
+        els.targetProgress.style.width = `${Math.min(percent, 100)}%`;
+        els.targetProgress.classList.toggle('over', chars > target);
+      }
+
+      function renderMobileMeter(a) {
+        const target = getTargetValue();
+        els.mobileMeterMain.textContent = t('mobileChars', { count: formatNumber(a.chars) });
+        if (!target) {
+          els.mobileMeterSub.textContent = t('mobileWords', { count: formatNumber(a.wordsFull.length) });
+          els.mobileMeterProgress.hidden = true;
+          els.mobileMeterProgressBar.style.width = '0%';
+          els.mobileMeterProgressBar.classList.remove('over');
+          return;
+        }
+        const diff = target - a.chars;
+        els.mobileMeterSub.textContent = diff > 0 ? t('mobileTargetRemain', { count: formatNumber(diff) }) : diff < 0 ? t('mobileTargetOver', { count: formatNumber(Math.abs(diff)) }) : t('mobileTargetExact');
+        const percent = Math.round((a.chars / target) * 100);
+        els.mobileMeterProgress.hidden = false;
+        els.mobileMeterProgressBar.style.width = `${Math.min(percent, 100)}%`;
+        els.mobileMeterProgressBar.classList.toggle('over', a.chars > target);
+      }
+
+      function getTargetValue() {
+        if (els.targetSelect.value === 'custom') {
+          const value = Number.parseInt(els.targetInput.value, 10);
+          return Number.isFinite(value) && value > 0 ? Math.min(value, 1000000) : 0;
+        }
+        return Number.parseInt(els.targetSelect.value, 10) || 0;
+      }
+
+      function renderComposition(a) {
+        const items = [
+          ['kanji', 'compKanji'], ['hiragana', 'compHiragana'], ['katakana', 'compKatakana'], ['latin', 'compLatin'], ['punctuation', 'compPunctuation']
+        ];
+        const total = Object.values(a.scripts).reduce((sum, value) => sum + value, 0);
+        els.compositionList.replaceChildren();
+        items.forEach(([key, label]) => {
+          const count = a.scripts[key];
+          const pct = total ? (count / total) * 100 : 0;
+          const row = document.createElement('div');
+          row.className = 'composition-row';
+          const name = document.createElement('span'); name.className = 'composition-name'; name.textContent = t(label);
+          const track = document.createElement('div'); track.className = 'composition-track';
+          const fill = document.createElement('div'); fill.className = 'composition-fill'; fill.style.width = `${pct}%`; track.appendChild(fill);
+          const value = document.createElement('span'); value.className = 'composition-value'; value.textContent = `${pct.toFixed(pct >= 10 ? 0 : 1)}%`;
+          row.append(name, track, value); els.compositionList.appendChild(row);
+        });
+      }
+
+      function renderFrequency(a) {
+        els.frequencyList.replaceChildren();
+        if (!a.frequency.length) {
+          const empty = document.createElement('div'); empty.className = 'empty-state'; empty.textContent = t('noFrequency'); els.frequencyList.appendChild(empty); return;
+        }
+        a.frequency.slice(0, 12).forEach(([word, count]) => {
+          const button = document.createElement('button');
+          button.type = 'button'; button.className = 'frequency-item'; button.dataset.word = word; button.classList.toggle('active', state.selectedWord === word);
+          const wordEl = document.createElement('span'); wordEl.className = 'frequency-word'; wordEl.textContent = word;
+          const countEl = document.createElement('span'); countEl.className = 'frequency-count'; countEl.textContent = t('times', { count: formatNumber(count) });
+          button.append(wordEl, countEl);
+          button.addEventListener('click', () => {
+            state.selectedWord = state.selectedWord === word ? '' : word;
+            state.focusRange = null;
+            renderFrequency(a); renderXray(a); switchTab('xray');
+          });
+          els.frequencyList.appendChild(button);
+        });
+      }
+
+      function getWordRanges(text, word) {
+        if (!word) return [];
+        const ranges = [];
+        const haystack = text.toLocaleLowerCase();
+        const needle = word.toLocaleLowerCase();
+        let from = 0;
+        while (from < text.length) {
+          const index = haystack.indexOf(needle, from);
+          if (index < 0) break;
+          ranges.push({ start: index, end: index + word.length });
+          from = index + Math.max(word.length, 1);
+        }
+        return ranges;
+      }
+
+      function overlaps(range, start, end) { return range && range.start < end && range.end > start; }
+
+      function renderXray(a) {
+        els.xrayPreview.replaceChildren();
+        els.selectedWordLegend.textContent = state.selectedWord ? t('legendSelected', { word: state.selectedWord }) : t('legendWord');
+        if (!a.text) {
+          const empty = document.createElement('div'); empty.className = 'empty-state'; empty.textContent = t('emptyPreview'); els.xrayPreview.appendChild(empty); return;
+        }
+
+        const longRanges = a.sentenceSegments
+          .filter((part) => unicodeLength(part.text.trim()) > LONG_SENTENCE_THRESHOLD)
+          .map((part) => ({ start: part.start, end: part.end }));
+        const wordRanges = getWordRanges(a.text, state.selectedWord);
+        const focus = state.focusRange && state.focusRange.start < a.text.length
+          ? { start: state.focusRange.start, end: Math.min(state.focusRange.end, a.text.length) }
+          : null;
+        const boundaries = new Set([0, a.text.length]);
+        [...longRanges, ...wordRanges, ...(focus ? [focus] : [])].forEach((range) => {
+          boundaries.add(Math.max(0, range.start));
+          boundaries.add(Math.min(a.text.length, range.end));
+        });
+        const points = Array.from(boundaries).sort((x, y) => x - y);
+        let focusNode = null;
+
+        let longIndex = 0; let wordIndex = 0;
+        for (let i = 0; i < points.length - 1; i++) {
+          const start = points[i]; const end = points[i + 1];
+          if (end <= start) continue;
+          while (longIndex < longRanges.length && longRanges[longIndex].end <= start) longIndex++;
+          while (wordIndex < wordRanges.length && wordRanges[wordIndex].end <= start) wordIndex++;
+          const chunk = a.text.slice(start, end);
+          const isLong = Boolean(longRanges[longIndex] && overlaps(longRanges[longIndex], start, end));
+          const isWord = Boolean(wordRanges[wordIndex] && overlaps(wordRanges[wordIndex], start, end));
+          const isFocus = overlaps(focus, start, end);
+          if (!isLong && !isWord && !isFocus) {
+            els.xrayPreview.appendChild(document.createTextNode(chunk));
+            continue;
+          }
+          const span = document.createElement('span');
+          if (isLong) span.classList.add('long-sentence');
+          if (isWord) span.classList.add('word-highlight');
+          if (isFocus) {
+            span.classList.add('issue-focus');
+            if (!focusNode) focusNode = span;
+          }
+          span.textContent = chunk;
+          els.xrayPreview.appendChild(span);
+        }
+
+        if (a.limited) {
+          const note = document.createElement('div'); note.className = 'freq-note'; note.style.marginTop = '12px'; note.textContent = t('analysisLimited'); els.xrayPreview.appendChild(note);
+        }
+        if (focusNode) {
+          window.requestAnimationFrame(() => {
+            focusNode.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+          });
+        }
+      }
+
+      function getWordSegmentsWithRanges(text) {
+        if (!text.trim()) return [];
+        if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+          try {
+            const locale = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(text) ? 'ja' : 'en';
+            const segmenter = new Intl.Segmenter(locale, { granularity: 'word' });
+            return Array.from(segmenter.segment(text))
+              .filter((part) => part.isWordLike)
+              .map((part) => ({ word: part.segment, start: part.index, end: part.index + part.segment.length }));
+          } catch (_) {}
+        }
+        return Array.from(text.matchAll(/[\p{L}\p{N}]+/gu)).map((match) => ({ word: match[0], start: match.index || 0, end: (match.index || 0) + match[0].length }));
+      }
+
+      function findRepeatedAdjacentWord(text) {
+        const segments = getWordSegmentsWithRanges(text);
+        for (let i = 1; i < segments.length; i++) {
+          const previous = segments[i - 1];
+          const current = segments[i];
+          const a = previous.word.normalize('NFKC').toLocaleLowerCase();
+          const b = current.word.normalize('NFKC').toLocaleLowerCase();
+          if (a === b && unicodeLength(a) > 1) return { word: a, start: previous.start, end: current.end };
+        }
+        return null;
+      }
+
+      function getStyle(text) {
+        const polite = (text.match(/(?:です|ます|でした|ません|ましょう)(?:[。！？!?]|$)/gu) || []).length;
+        const plain = (text.match(/(?:だ|である|だった|ではない)(?:[。！？!?]|$)/gu) || []).length;
+        if (polite >= 2 && plain >= 2) return 'styleMixed';
+        if (polite >= 2 && polite >= plain * 2) return 'stylePolite';
+        if (plain >= 2 && plain >= polite * 2) return 'stylePlain';
+        return 'styleUnknown';
+      }
+
+      function firstRegexRange(text, regex) {
+        regex.lastIndex = 0;
+        const match = regex.exec(text);
+        return match ? { start: match.index, end: match.index + match[0].length } : null;
+      }
+
+      function jumpToIssue(range, word = '') {
+        if (!range) return;
+        state.selectedWord = word || '';
+        state.focusRange = range;
+        const analysis = buildAnalysis(els.input.value);
+        renderFrequency(analysis);
+        switchTab('xray');
+        renderXray(analysis);
+      }
+
+      function addCheck(tone, title, body, range = null, word = '') {
+        const actionable = Boolean(range);
+        const card = document.createElement('div');
+        if (actionable) {
+          card.className = `check-card actionable ${tone}`;
+          card.setAttribute('role', 'button');
+          card.tabIndex = 0;
+          card.addEventListener('click', () => jumpToIssue(range, word));
+          card.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            jumpToIssue(range, word);
+          });
+        } else {
+          card.className = `check-card ${tone}`;
+        }
+        const icon = document.createElement('div'); icon.className = 'check-icon'; icon.innerHTML = tone === 'danger' ? '<svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M12 8v5M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.3 4.7 3.5 17a2 2 0 0 0 1.8 3h13.4a2 2 0 0 0 1.8-3L13.7 4.7a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8"/></svg>' : tone === 'warning' ? '<svg viewBox="0 0 24 24" width="15" height="15" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v6M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' : '<svg viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="m7 12 3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>';
+        const copy = document.createElement('div'); copy.className = 'check-copy';
+        const h = document.createElement('h4'); h.textContent = title;
+        const p = document.createElement('p'); p.textContent = body;
+        copy.append(h, p);
+        if (actionable) {
+          const jump = document.createElement('span'); jump.className = 'check-jump';
+          jump.innerHTML = `<span>${t('checkJump')}</span><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+          copy.appendChild(jump);
+        }
+        card.append(icon, copy); els.checksList.appendChild(card);
+      }
+
+      function renderChecks(a) {
+        els.checksList.replaceChildren();
+        els.styleResult.textContent = t(getStyle(a.text));
+        if (!a.text.trim()) { addCheck('', t('checkEmptyTitle'), t('checkEmptyBody')); return; }
+        let issues = 0;
+        const longParts = a.sentenceSegments.filter((part) => unicodeLength(part.text.trim()) > LONG_SENTENCE_THRESHOLD);
+        const longestPart = longParts.reduce((best, part) => !best || unicodeLength(part.text.trim()) > unicodeLength(best.text.trim()) ? part : best, null);
+        if (a.longest > 160 && longestPart) {
+          addCheck('danger', t('checkVeryLongTitle'), t('checkVeryLongBody', { count: formatNumber(a.longest) }), { start: longestPart.start, end: longestPart.end });
+          issues++;
+        } else if (longParts.length) {
+          addCheck('warning', t('checkLongTitle', { count: formatNumber(longParts.length) }), t('checkLongBody'), { start: longParts[0].start, end: longParts[0].end });
+          issues++;
+        }
+        const repeated = findRepeatedAdjacentWord(a.text);
+        if (repeated) {
+          addCheck('warning', t('checkRepeatTitle'), t('checkRepeatBody', { word: repeated.word }), { start: repeated.start, end: repeated.end }, repeated.word);
+          issues++;
+        }
+        const repeatedSpaceMatches = a.text.match(/ {2,}/gu) || [];
+        const repeatedSpaceRange = firstRegexRange(a.text, / {2,}/gu);
+        if (repeatedSpaceMatches.length) {
+          addCheck('warning', t('checkSpaceTitle'), t('checkSpaceBody', { count: formatNumber(repeatedSpaceMatches.length) }), repeatedSpaceRange);
+          issues++;
+        }
+        const repeatedPuncMatches = a.text.match(/([、。！？!?.,])\1+/gu) || [];
+        const repeatedPuncRange = firstRegexRange(a.text, /([、。！？!?.,])\1+/gu);
+        if (repeatedPuncMatches.length) {
+          addCheck('warning', t('checkPuncTitle'), t('checkPuncBody', { count: formatNumber(repeatedPuncMatches.length) }), repeatedPuncRange);
+          issues++;
+        }
+        if (!issues) addCheck('', t('checkGoodTitle'), t('checkGoodBody'));
+        if (a.limited) addCheck('warning', t('checksTitle'), t('analysisLimited'));
+      }
+
+      function analyzeNow() {
+        const analysis = buildAnalysis(els.input.value);
+        if (state.focusRange && state.focusRange.end > analysis.text.length) state.focusRange = null;
+        renderSummary(analysis); renderTarget(analysis.chars); renderMobileMeter(analysis); renderComposition(analysis); renderFrequency(analysis); renderXray(analysis); renderChecks(analysis); updateSelection();
+      }
+
+      function scheduleAnalysis() {
+        window.clearTimeout(state.analysisTimer);
+        state.analysisTimer = window.setTimeout(analyzeNow, 45);
+        scheduleSave();
+      }
+
+      function scheduleSave() {
+        window.clearTimeout(state.saveTimer);
+        els.saved.classList.remove('show');
+        state.saveTimer = window.setTimeout(() => {
+          try { localStorage.setItem(STORAGE_KEY, els.input.value); els.saved.classList.add('show'); window.setTimeout(() => els.saved.classList.remove('show'), 1100); } catch (_) {}
+        }, 350);
+      }
+
+      function updateSelection() {
+        const start = els.input.selectionStart ?? 0; const end = els.input.selectionEnd ?? 0;
+        if (end > start) {
+          const selected = els.input.value.slice(start, end);
+          els.selection.textContent = t('selection', { chars: formatNumber(unicodeLength(selected)), words: formatNumber(getWords(selected).length) });
+          els.selection.classList.add('active');
+        } else { els.selection.textContent = t('noSelection'); els.selection.classList.remove('active'); }
+      }
+
+      let toastTimer = 0;
+      function showToast(message, action) {
+        window.clearTimeout(toastTimer); state.undo = action || null; els.toastMessage.textContent = message; els.toastAction.hidden = !action; els.toast.classList.add('show');
+        toastTimer = window.setTimeout(hideToast, action ? 6000 : 2600);
+      }
+      function hideToast() { els.toast.classList.remove('show'); state.undo = null; }
+
+      async function copyText() {
+        const text = els.input.value;
+        try {
+          if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
+          else {
+            els.input.focus(); els.input.select();
+            if (!document.execCommand('copy')) throw new Error('copy failed');
+            updateSelection();
+          }
+          showToast(t('copied'));
+        } catch (_) { showToast(t('copyFailed')); }
+      }
+
+      function updateHistoryButtons() {
+        const canUndo = state.historyIndex > 0;
+        const canRedo = state.historyIndex >= 0 && state.historyIndex < state.history.length - 1;
+        els.undoButton.disabled = !canUndo; els.redoButton.disabled = !canRedo;
+        els.mobileUndoButton.disabled = !canUndo; els.mobileRedoButton.disabled = !canRedo;
+        els.undoButton.setAttribute('aria-disabled', String(!canUndo)); els.redoButton.setAttribute('aria-disabled', String(!canRedo));
+        els.mobileUndoButton.setAttribute('aria-disabled', String(!canUndo)); els.mobileRedoButton.setAttribute('aria-disabled', String(!canRedo));
+      }
+
+      function initializeHistory(value) {
+        state.history = [value]; state.historyIndex = 0; state.applyingHistory = false; updateHistoryButtons();
+      }
+
+      function pushHistory(value) {
+        if (state.applyingHistory) return;
+        const current = state.history[state.historyIndex];
+        if (current === value) { updateHistoryButtons(); return; }
+        state.history = state.history.slice(0, state.historyIndex + 1);
+        state.history.push(value);
+        while (state.history.length > 1 && (state.history.length > HISTORY_MAX_ENTRIES || state.history.reduce((sum, item) => sum + item.length, 0) > HISTORY_MAX_CHARS)) state.history.shift();
+        state.historyIndex = state.history.length - 1; updateHistoryButtons();
+      }
+
+      function scheduleHistory() {
+        window.clearTimeout(state.historyTimer);
+        state.historyTimer = window.setTimeout(() => pushHistory(els.input.value), 450);
+      }
+
+      function flushHistory() {
+        window.clearTimeout(state.historyTimer); state.historyTimer = null; pushHistory(els.input.value);
+      }
+
+      function applyHistory(index, toastKey) {
+        if (index < 0 || index >= state.history.length || index === state.historyIndex) return;
+        state.applyingHistory = true; state.historyIndex = index; els.input.value = state.history[index]; state.applyingHistory = false; state.focusRange = null;
+        scheduleAnalysis(); els.input.focus(); updateHistoryButtons(); showToast(t(toastKey));
+      }
+
+      function undoText() {
+        flushHistory(); if (state.historyIndex > 0) applyHistory(state.historyIndex - 1, 'undoDone');
+      }
+
+      function redoText() {
+        flushHistory(); if (state.historyIndex < state.history.length - 1) applyHistory(state.historyIndex + 1, 'redoDone');
+      }
+
+      function replaceText(next, toastKey) {
+        if (els.input.value === next) return;
+        flushHistory(); els.input.value = next; state.focusRange = null; pushHistory(next); scheduleAnalysis(); els.input.focus();
+        showToast(t(toastKey), undoText);
+      }
+
+      function finishConfirm(result) {
+        const resolve = state.confirmResolver; state.confirmResolver = null;
+        if (els.confirmDialog.open) els.confirmDialog.close();
+        if (resolve) resolve(result);
+      }
+
+      function askConfirm(titleKey, messageKey, actionKey, tone = '') {
+        if (state.confirmResolver) finishConfirm(false);
+        els.confirmTitle.textContent = t(titleKey); els.confirmMessage.textContent = t(messageKey); els.confirmAccept.textContent = t(actionKey);
+        els.confirmAccept.classList.toggle('confirm-danger', tone === 'danger');
+        els.confirmDialog.showModal();
+        window.setTimeout(() => els.confirmCancel.focus(), 0);
+        return new Promise((resolve) => { state.confirmResolver = resolve; });
+      }
+
+      async function confirmAndReplace(kind) {
+        if (kind === 'clear') {
+          if (!els.input.value) return;
+          if (await askConfirm('confirmClearTitle', 'confirmClearMessage', 'confirmClearAction', 'danger')) replaceText('', 'cleared');
+          return;
+        }
+        const next = sampleText();
+        if (els.input.value === next) return;
+        if (await askConfirm('confirmSampleTitle', 'confirmSampleMessage', 'confirmSampleAction')) replaceText(next, 'sampleLoaded');
+      }
+
+      function sampleText() {
+        return state.lang === 'ja'
+          ? '文章を書くとき、文字数だけを確認して終わってしまうことがあります。しかし、読みやすさは文字数だけでは決まりません。文の長さや漢字の割合、同じ言葉の繰り返しにも、その文章らしさが表れます。\n\nText Inspector は、文章を「数える」だけでなく、その構造を軽く観察するための道具です。たとえば、長すぎる文を見つけたり、よく使っている単語を確認したりできます。結果はあくまで目安ですが、推敲を始めるきっかけとして使えます。\n\n入力した文章は外部へ送信しません。すべてブラウザの中で処理します。'
+          : 'When we edit a piece of writing, it is easy to stop after checking the character count. But readability is shaped by more than length. Sentence size, repeated words, and the mix of characters can reveal patterns that are hard to notice while drafting.\n\nText Inspector is designed to make those patterns visible without sending your writing anywhere. It can surface long sentences, show frequently used words, and provide lightweight signals for revision. The results are only indicators, not judgments about whether the writing is good or bad.';
+      }
+
+      function switchTab(name) {
+        document.querySelectorAll('.tab').forEach((tab) => { const active = tab.dataset.tab === name; tab.setAttribute('aria-selected', String(active)); });
+        document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `panel-${name}`));
+      }
+
+      function mountMobileBottomBar() {
+        if (!els.mobileBottomBar) return;
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+        const buttons = Array.from(els.mobileBottomBar.querySelectorAll('.app-mobile-bottom-item'));
+
+        function setActive(key) {
+          buttons.forEach((button) => {
+            const active = button.dataset.mobileKey === key;
+            button.classList.toggle('is-active', active);
+            if (button.dataset.mobileTarget) {
+              if (active) button.setAttribute('aria-current', 'page');
+              else button.removeAttribute('aria-current');
+            }
+          });
+        }
+
+        els.mobileBottomBar.addEventListener('click', (event) => {
+          const button = event.target.closest('.app-mobile-bottom-item');
+          if (!button || !els.mobileBottomBar.contains(button) || button.disabled) return;
+          const targetId = button.dataset.mobileTarget;
+          if (targetId) {
+            const target = document.getElementById(targetId);
+            if (target) {
+              target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+              setActive(button.dataset.mobileKey || targetId);
+            }
+          }
+          if (button.dataset.mobileAction === 'undo') undoText();
+          if (button.dataset.mobileAction === 'redo') redoText();
+        });
+
+        const targets = buttons
+          .filter((button) => button.dataset.mobileTarget)
+          .map((button) => ({ button, target: document.getElementById(button.dataset.mobileTarget) }))
+          .filter((entry) => entry.target);
+
+        if ('IntersectionObserver' in window && targets.length) {
+          const observer = new IntersectionObserver((entries) => {
+            const visible = entries
+              .filter((entry) => entry.isIntersecting)
+              .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (!visible) return;
+            const match = targets.find((entry) => entry.target === visible.target);
+            if (match) setActive(match.button.dataset.mobileKey || match.button.dataset.mobileTarget);
+          }, { rootMargin: '-25% 0px -55% 0px', threshold: [0, .01, .25, .5] });
+          targets.forEach((entry) => observer.observe(entry.target));
+        }
+      }
+
+      function applyLanguage() {
+        document.documentElement.lang = state.lang;
+        document.querySelectorAll('[data-i18n]').forEach((node) => { node.textContent = t(node.dataset.i18n); });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => { node.placeholder = t(node.dataset.i18nPlaceholder); });
+        document.querySelectorAll('[data-i18n-title]').forEach((node) => { node.title = t(node.dataset.i18nTitle); });
+        document.querySelectorAll('[data-i18n-aria-label]').forEach((node) => { node.setAttribute('aria-label', t(node.dataset.i18nAriaLabel)); });
+        els.language.textContent = state.lang === 'ja' ? 'EN' : 'JA';
+        els.help.setAttribute('aria-label', t('helpTitle')); els.help.title = t('helpTitle'); els.helpClose.setAttribute('aria-label', state.lang === 'ja' ? '閉じる' : 'Close'); els.confirmClose.setAttribute('aria-label', state.lang === 'ja' ? '閉じる' : 'Close'); updateHistoryButtons();
+        analyzeNow();
+        saveSettings();
+      }
+
+      function saveSettings() {
+        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ lang: state.lang, targetSelect: els.targetSelect.value, targetInput: els.targetInput.value })); } catch (_) {}
+      }
+
+      function restore() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY); if (saved !== null) els.input.value = saved;
+          const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+          if (settings.lang === 'en' || settings.lang === 'ja') state.lang = settings.lang;
+          if (['0', '140', '400', '800', '1000', 'custom'].includes(settings.targetSelect)) els.targetSelect.value = settings.targetSelect;
+          if (settings.targetInput) els.targetInput.value = settings.targetInput;
+        } catch (_) {}
+        els.targetInput.hidden = els.targetSelect.value !== 'custom';
+      }
+
+      els.input.addEventListener('input', () => { state.focusRange = null; scheduleAnalysis(); scheduleHistory(); });
+      ['select', 'keyup', 'mouseup', 'touchend'].forEach((event) => els.input.addEventListener(event, updateSelection));
+      els.input.addEventListener('blur', flushHistory);
+      els.copy.addEventListener('click', copyText);
+      els.sample.addEventListener('click', () => confirmAndReplace('sample'));
+      els.clear.addEventListener('click', () => confirmAndReplace('clear'));
+      els.undoButton.addEventListener('click', undoText);
+      els.redoButton.addEventListener('click', redoText);
+      els.language.addEventListener('click', () => { state.lang = state.lang === 'ja' ? 'en' : 'ja'; applyLanguage(); });
+      els.help.addEventListener('click', () => els.helpDialog.showModal());
+      els.helpClose.addEventListener('click', () => els.helpDialog.close());
+      els.helpDialog.addEventListener('click', (event) => { if (event.target === els.helpDialog) els.helpDialog.close(); });
+      els.confirmClose.addEventListener('click', () => finishConfirm(false));
+      els.confirmCancel.addEventListener('click', () => finishConfirm(false));
+      els.confirmAccept.addEventListener('click', () => finishConfirm(true));
+      els.confirmDialog.addEventListener('cancel', (event) => { event.preventDefault(); finishConfirm(false); });
+      els.confirmDialog.addEventListener('click', (event) => { if (event.target === els.confirmDialog) finishConfirm(false); });
+      els.toastClose.addEventListener('click', hideToast);
+      els.toastAction.addEventListener('click', () => { const action = state.undo; hideToast(); if (action) action(); });
+      els.targetSelect.addEventListener('change', () => { els.targetInput.hidden = els.targetSelect.value !== 'custom'; const analysis = buildAnalysis(els.input.value); renderTarget(analysis.chars); renderMobileMeter(analysis); saveSettings(); if (!els.targetInput.hidden) els.targetInput.focus(); });
+      els.targetInput.addEventListener('input', () => { const analysis = buildAnalysis(els.input.value); renderTarget(analysis.chars); renderMobileMeter(analysis); });
+      els.targetInput.addEventListener('change', () => { let value = Number.parseInt(els.targetInput.value, 10); if (!Number.isFinite(value) || value < 1) value = 1; value = Math.min(value, 1000000); els.targetInput.value = String(value); const analysis = buildAnalysis(els.input.value); renderTarget(analysis.chars); renderMobileMeter(analysis); saveSettings(); });
+      document.addEventListener('keydown', (event) => {
+        if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+        const active = document.activeElement;
+        if ((active && active !== els.input && active.matches('input, textarea, [contenteditable="true"]'))) return;
+        const key = event.key.toLowerCase();
+        if (key === 'z') { event.preventDefault(); event.shiftKey ? redoText() : undoText(); }
+        else if (key === 'y' && event.ctrlKey) { event.preventDefault(); redoText(); }
+      });
+      els.mobileMeter.addEventListener('click', () => {
+        $('summarySection').scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      });
+      document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
+      document.querySelector('.tabs').addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        const tabs = Array.from(document.querySelectorAll('.tab')); const current = tabs.indexOf(document.activeElement); if (current < 0) return;
+        event.preventDefault(); let next = current;
+        if (event.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+        if (event.key === 'ArrowRight') next = (current + 1) % tabs.length;
+        if (event.key === 'Home') next = 0; if (event.key === 'End') next = tabs.length - 1;
+        tabs[next].focus(); switchTab(tabs[next].dataset.tab);
+      });
+
+      restore(); initializeHistory(els.input.value); mountMobileBottomBar(); applyLanguage();
+    })();
+  </script>
+  <!-- APP:END -->
+</body>
+</html>

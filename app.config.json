@@ -1,0 +1,14 @@
+{
+  "name": "Text Inspector",
+  "slug": "htmlapps-text-inspector",
+  "version": "1.0.0",
+  "defaultLanguage": "ja",
+  "release": {
+    "readable": "dist/index.html",
+    "selfExtract": "dist/index.self-extract.html"
+  },
+  "budgets": {
+    "readableWarnBytes": 120000,
+    "selfExtractWarnBytes": 50000
+  }
+}
