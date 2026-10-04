@@ -27,6 +27,8 @@
 - Text X-Ray for long sentences and a selected frequent word.
 - Lightweight checks for long sentences, repeated adjacent words, repeated spaces, and repeated punctuation.
 - Actionable writing-check cards for long sentences, repeated words, repeated spaces, and repeated punctuation; activating one opens X-Ray, highlights the matching range, and scrolls it into view.
+- Invisible-character checks for ZWSP (U+200B), NBSP (U+00A0), narrow NBSP (U+202F), word joiner (U+2060), and BOM / zero-width no-break space (U+FEFF), grouped by type, Unicode code point, and count. Whitespace-only inputs are checked too.
+- Each invisible-character check jumps to its first occurrence with a readable X-Ray marker; original input, autosave, and Copy are unchanged. ZWJ / ZWNJ are excluded because they are used in emoji and writing systems. Explain that the detected characters can also be intentional.
 - Lightweight Japanese style signal for `です・ます` / `だ・である` endings.
 - Optional target character count presets plus custom target.
 - Selected-range character and word count.
@@ -49,6 +51,7 @@
 
 - Main counts target smooth interaction around 100,000 characters on typical current browsers.
 - For input above 200,000 UTF-16 code units, expensive frequency/X-Ray/check analysis is limited to the first 200,000 while headline counts continue to use the full text.
+- Invisible-character counts cover that same analyzed prefix. Store and render at most 1,000 invisible-character markers; reserve a marker for a selected occurrence beyond that cap and show the display limit visibly. Counts are not capped at 1,000.
 - Keystroke analysis is debounced briefly.
 
 ## 6. Limitations
@@ -75,3 +78,5 @@ Current stable Chromium, Firefox, and Safari on desktop and mobile. Direct `file
 - The analysis tab row stays in normal flow on smartphones and must not create a blank offset inside the analysis card.
 - Target count reports remaining, exact, or over-target state.
 - Help accurately documents privacy, limitations, and localStorage risk.
+- Invisible-character jumps work with mouse, Enter, and Space and move keyboard focus into X-Ray. Markers can overlap existing sentence/word highlights without treating source text as HTML.
+- Regression tests cover Unicode offsets, whitespace-only inputs, marker/analysis limits, safe rendering, unchanged copy, cancellation and history. Repository verification runs them with Node.js 20 or later after rebuilding the releases.

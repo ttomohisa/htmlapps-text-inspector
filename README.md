@@ -23,7 +23,7 @@ Smartphone view: [screenshot-mobile.png](assets/screenshot-mobile.png)
 - **Count what matters at a glance** — Characters, characters without spaces, words, sentences, paragraphs, lines, reading time, read-aloud time, and manuscript-paper equivalents update as you type.
 - **See the shape of your writing** — Compare Kanji, Hiragana, Katakana, Latin letters & digits, and other characters with a simple composition view.
 - **Find repeated language quickly** — Frequent-word ranking highlights occurrences in X-Ray so you can see where a word is being overused.
-- **Jump straight to suspicious passages** — Long sentences, repeated words, consecutive spaces, and repeated punctuation link directly to the matching X-Ray location.
+- **Jump straight to suspicious passages** — Long sentences, repeated words, consecutive spaces, repeated punctuation, and five types of invisible characters link directly to the matching X-Ray location.
 - **Write toward a character target** — Choose a preset or custom target and keep the remaining / exceeded count visible, including in the smartphone mini meter.
 - **Edit without fear** — Sample and Clear require confirmation, while Undo / Redo works from buttons, keyboard shortcuts, and the mobile bottom bar.
 - **Private single-HTML operation** — No runtime third-party library or CDN is required, and the generated app works as one self-contained HTML file.
@@ -95,9 +95,14 @@ The app intentionally keeps checks lightweight and explainable. It currently loo
 - Immediately repeated words
 - Consecutive spaces
 - Repeated punctuation / symbols
+- Invisible characters: zero-width space (U+200B), non-breaking space (U+00A0), narrow non-breaking space (U+202F), word joiner (U+2060), and BOM / zero-width no-break space (U+FEFF)
 - A simple Japanese polite-style (`です・ます`) / plain-style (`だ・である`) tendency
 
 These are hints for review, not grammar corrections or AI-generated rewrites.
+
+Invisible-character checks show the type, Unicode code point, and count, even for whitespace-only input. Activate a check with a click, Enter, or Space to jump to its first occurrence in X-Ray. Labels such as `[ZWSP]` and `[NBSP]` are display-only: the editor, autosave, and **Copy** retain the original text. These characters can be intentional in line breaking, typography, and file-leading BOMs; they are not automatic errors. ZWJ / ZWNJ, used in emoji and writing systems, are excluded.
+
+Counts cover the first 200,000 UTF-16 code units, matching the existing analysis limit. X-Ray shows at most 1,000 invisible-character markers, including a selected occurrence beyond that cap, and explains the display limit. The cap does not reduce the reported counts.
 
 ## Publish with GitHub Pages
 
@@ -170,7 +175,9 @@ The build generates the release files under `dist/` and verifies the standalone 
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-repository.ps1
 ```
 
-This command rebuilds and verifies the standalone artifacts. GitHub Actions uses the same entry point.
+This command requires **Node.js 20 or later** for development verification. It rebuilds and verifies the standalone artifacts, then runs the dependency-free Node regression suite (`node --test`). GitHub Actions uses the same entry point. Building with `build-standalone.bat` alone does not require Node.
+
+For real-browser regression checks, install the development-only Python Playwright package and Chromium (`python -m pip install playwright`, then `python -m playwright install chromium`), rebuild, and run `python tests/test-invisible-browser.py`. Set `CHROMIUM_PATH` to use an already installed Chromium binary. The script opens both generated files directly with the browser offline, tests Japanese/English at desktop/320px widths, and checks keyboard jumps, safe rendering, copy, limits, edit/history/cancel flows, and absence of runtime requests. These browser tests are separate from the Node/build gate and require an environment that allows launching a browser.
 
 ## Supported browsers and devices
 

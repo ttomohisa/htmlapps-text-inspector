@@ -95,9 +95,14 @@ Unicodeを考慮した文字数をブラウザ内で計算し、単語数や文�
 - 同じ単語の連続
 - 連続する空白
 - 連続する句読点・記号
+- 見えない文字：ゼロ幅スペース (U+200B)、改行しない空白 (U+00A0)、幅の狭い改行しない空白 (U+202F)、ワードジョイナー (U+2060)、BOM / ゼロ幅改行なし空白 (U+FEFF)
 - 「です・ます」調 / 「だ・である」調の簡易的な傾向
 
 文章チェックは推敲のきっかけを提示する機能で、文法校正やAIによる文章書き換えではありません。
+
+見えない文字は、空白だけの入力でも種類・Unicode・件数を表示します。項目をクリック、Enter、Spaceで選ぶと、X-Rayの先頭の該当箇所へ移動します。`[ZWSP]` や `[NBSP]` は表示専用で、入力欄・自動保存・**コピー**の原文は変更しません。改行制御や組版、ファイル先頭のBOMなど意図した用途もあるため、必ずしも誤りではありません。絵文字や文字の結合に使うZWJ / ZWNJは対象外です。
+
+件数の分析範囲は既存の制限と同じ先頭200,000 UTF-16コード単位です。X-Rayのマーカーは最大1,000件とし、範囲外の種類を選んだ場合も選択箇所を含めて表示します。表示上限は画面に説明し、件数の集計には影響しません。
 
 ## GitHub Pagesで公開する
 
@@ -170,7 +175,9 @@ Text Inspectorは実行時の外部依存を持たず、以下の2種類の単�
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-repository.ps1
 ```
 
-このコマンドは単一HTMLを再ビルドし、検証スクリプトを実行します。GitHub Actionsでも同じ入口を使用します。
+開発時の検証には **Node.js 20以上** が必要です。このコマンドは単一HTMLを再ビルド・検証した後、外部依存のないNode回帰テスト（`node --test`）を実行します。GitHub Actionsでも同じ入口を使用します。`build-standalone.bat` 単体でのビルドにはNodeは不要です。
+
+実ブラウザの回帰テストは、開発用Python PlaywrightとChromiumをインストール（`python -m pip install playwright`、`python -m playwright install chromium`）してから、ビルド後に `python tests/test-invisible-browser.py` で実行できます。既存のChromiumを使う場合は `CHROMIUM_PATH` を指定します。両生成HTMLをネットワーク無効で直接開き、日英・デスクトップ/320px・キーボード移動・安全な表示・コピー・件数上限・編集/履歴/キャンセル・実行時通信の有無を確認します。このテストはNode/ビルド検証とは別で、ブラウザを起動できる環境が必要です。
 
 ## 対応ブラウザ・端末
 

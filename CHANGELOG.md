@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added five invisible-character checks with Unicode names, counts, and keyboard-accessible X-Ray jumps.
+- Added readable X-Ray-only markers, with a 1,000-marker display cap and full counts within the existing first-200,000-UTF-16-unit analysis limit. Original text and Copy stay unchanged; ZWJ / ZWNJ remain excluded.
+- Added bilingual explanations, regression tests, and exact self-extract restoration verification.
+
 ## 1.0.0 - 2026-08-23
 
 - Initial public release of Text Inspector.
