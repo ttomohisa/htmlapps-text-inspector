@@ -155,3 +155,21 @@ test('cancel, clear, undo and redo retain original text and clear stale issue fo
   h.redoText();
   assert.equal(h.els.input.value, '');
 });
+
+test('English invisible-character counts use singular for one and plural for multiple', () => {
+  const h = harness();
+  const types = ['\u200b', '\u00a0', '\u202f', '\u2060', '\ufeff'];
+  for (const char of types) {
+    h.renderChecks(h.buildAnalysis(char));
+    const single = h.els.checksList.children.find(n => n.attrs.role === 'button');
+    assert.match(single.textContent, /1 occurrence\. Review its position/);
+    h.renderChecks(h.buildAnalysis(char.repeat(2)));
+    const multiple = h.els.checksList.children.find(n => n.attrs.role === 'button');
+    assert.match(multiple.textContent, /2 occurrences\. Review their positions/);
+  }
+  h.state.lang = 'ja';
+  for (const count of [1, 2]) {
+    h.renderChecks(h.buildAnalysis('\u00a0'.repeat(count)));
+    assert.ok(h.els.checksList.textContent.includes(`${count} 件あります。`));
+  }
+});
