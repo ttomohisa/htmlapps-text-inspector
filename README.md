@@ -100,9 +100,9 @@ The app intentionally keeps checks lightweight and explainable. It currently loo
 
 These are hints for review, not grammar corrections or AI-generated rewrites.
 
-Invisible-character checks show the type, Unicode code point, and count, even for whitespace-only input. Activate a check with a click, Enter, or Space to jump to its first occurrence in X-Ray. Labels such as `[ZWSP]` and `[NBSP]` are display-only: the editor, autosave, and **Copy** retain the original text. These characters can be intentional in line breaking, typography, and file-leading BOMs; they are not automatic errors. ZWJ / ZWNJ, used in emoji and writing systems, are excluded.
+Invisible-character checks show the type, Unicode code point, and count, even for whitespace-only input. Activate a check with a click, Enter, or Space to jump to its first occurrence in X-Ray. Use **Previous / Next** to inspect each occurrence of that same type, with a current / total position. Navigation stops at the first and last occurrence. Switching types starts at the first occurrence; editing, confirmed Sample/Clear, Undo/Redo, or selecting a word or ordinary check resets navigation. Switching language keeps the selected position. Labels such as `[ZWSP]` and `[NBSP]` are display-only: the editor, autosave, and **Copy** retain the original text. These characters can be intentional in line breaking, typography, and file-leading BOMs; they are not automatic errors. ZWJ / ZWNJ, used in emoji and writing systems, are excluded.
 
-Counts cover the first 200,000 UTF-16 code units, matching the existing analysis limit. X-Ray shows at most 1,000 invisible-character markers, including a selected occurrence beyond that cap, and explains the display limit. The cap does not reduce the reported counts.
+Counts cover the first 200,000 UTF-16 code units, matching the existing analysis limit. X-Ray shows at most 1,000 invisible-character markers, including a selected occurrence beyond that cap, and explains the display limit. The cap does not reduce the reported counts or prevent navigation to later occurrences within the analyzed prefix. Stale checks and word buttons clicked immediately after an edit refresh the current analysis without applying old locations or text.
 
 ## Publish with GitHub Pages
 
@@ -175,7 +175,9 @@ The build generates the release files under `dist/` and verifies the standalone 
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-repository.ps1
 ```
 
-This command requires **Node.js 20 or later** for development verification. It rebuilds and verifies the standalone artifacts, then runs the dependency-free Node regression suite (`node --test`). GitHub Actions uses the same entry point. Building with `build-standalone.bat` alone does not require Node.
+This command requires **Node.js 20 or later** for development verification. It rebuilds and verifies the standalone artifacts (including the identical root `text-inspector.html` download), then runs the dependency-free Node regression suite (`node --test`). GitHub Actions uses the same entry point. Building with `build-standalone.bat` alone does not require Node.
+
+The Node tests use a small DOM adapter and do not prove native keyboard, selection, scrolling, or visual behavior. To run the behavior suite against a generated readable file, set `TEXT_INSPECTOR_HTML` to its path before `node --test`; the self-extract payload is separately checked for byte-exact restoration.
 
 For real-browser regression checks, install the development-only Python Playwright package and Chromium (`python -m pip install playwright`, then `python -m playwright install chromium`), rebuild, and run `python tests/test-invisible-browser.py`. Set `CHROMIUM_PATH` to use an already installed Chromium binary. The script opens both generated files directly with the browser offline, tests Japanese/English at desktop/320px widths, and checks keyboard jumps, safe rendering, copy, limits, edit/history/cancel flows, and absence of runtime requests. These browser tests are separate from the Node/build gate and require an environment that allows launching a browser.
 

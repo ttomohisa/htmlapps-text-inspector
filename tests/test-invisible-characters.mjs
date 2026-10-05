@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { test } from 'node:test';
 
-const html = readFileSync(new URL('../src/index.template.html', import.meta.url), 'utf8');
+const html = readFileSync(process.env.TEXT_INSPECTOR_HTML || new URL('../src/index.template.html', import.meta.url), 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 // Evaluate the real analysis code before UI setup; no production-only test API.
 const analysisCode = script.slice(script.indexOf("'use strict';"), script.indexOf('      const $ ='))

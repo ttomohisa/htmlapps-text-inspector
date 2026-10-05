@@ -329,6 +329,10 @@
     .freq-note { padding: 12px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); font-size: 11px; }
     .empty-state { padding: 24px 12px; color: var(--muted); text-align: center; font-size: 12px; }
     .xray-tools { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+    .invisible-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .invisible-navigation[hidden] { display: none; }
+    .invisible-navigation-label { flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; font-size: 12px; font-weight: 700; }
+    .invisible-position { font-size: 12px; font-variant-numeric: tabular-nums; }
     .legend-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 10px; }
     .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); }
     .legend-dot.word { background: var(--accent); }
@@ -351,6 +355,18 @@
       box-shadow: 0 0 0 2px color-mix(in srgb, var(--warning) 40%, transparent);
     }
     .xray-preview .issue-focus.word-highlight { background: color-mix(in srgb, var(--accent-soft) 62%, var(--warning-soft)); }
+    .xray-preview .invisible-marker {
+      display: inline;
+      padding: 1px 3px;
+      border: 1px solid #a7bdd5;
+      border-radius: 4px;
+      background: #eaf2fb;
+      color: #284c74;
+      font: 700 11px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+    .xray-preview .invisible-marker.issue-focus { background: var(--warning-soft); }
+    .xray-note { margin: 0 0 10px; color: var(--muted); font-size: 11px; }
     .checks-list { display: grid; gap: 8px; }
     .check-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; }
     .check-card.actionable { width: 100%; color: inherit; background: var(--surface); font: inherit; text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
@@ -678,16 +694,25 @@
       </div>
 
       <div class="tab-panel" id="panel-xray" role="tabpanel" aria-labelledby="tab-xray">
-        <div class="panel-head"><div><h3 data-i18n="xrayTitle">Text X-Ray</h3><p data-i18n="xrayDesc">長い文と、選んだ頻出語を本文上で見つけます。</p></div></div>
+        <div class="panel-head"><div><h3 data-i18n="xrayTitle">Text X-Ray</h3><p data-i18n="xrayDesc">長い文・頻出語・見えない文字の位置を確認します。</p></div></div>
         <div class="xray-tools">
           <span class="legend-chip"><span class="legend-dot"></span><span data-i18n="legendLong">長い文（80文字超）</span></span>
           <span class="legend-chip"><span class="legend-dot word"></span><span id="selectedWordLegend" data-i18n="legendWord">頻出語を選択すると強調</span></span>
+        </div>
+        <p class="xray-note" data-i18n="invisibleXrayNote">[ZWSP] などの表示は X-Ray 専用です。入力とコピーする原文は変わりません。</p>
+        <p class="freq-note" id="xrayMarkerNote" hidden></p>
+        <div class="invisible-navigation" id="invisibleNavigation" role="group" aria-labelledby="invisibleNavigationLabel" hidden>
+          <span class="invisible-navigation-label" id="invisibleNavigationLabel"></span>
+          <button type="button" class="button" id="invisiblePrevious" data-i18n="invisiblePrevious" data-i18n-aria-label="invisiblePreviousLabel" aria-label="同じ種類の見えない文字の前の箇所" disabled>前へ</button>
+          <span class="invisible-position" id="invisiblePosition" role="status" aria-live="polite" aria-atomic="true"></span>
+          <button type="button" class="button" id="invisibleNext" data-i18n="invisibleNext" data-i18n-aria-label="invisibleNextLabel" aria-label="同じ種類の見えない文字の次の箇所" disabled>次へ</button>
         </div>
         <div class="xray-preview" id="xrayPreview"><div class="empty-state" data-i18n="emptyPreview">テキストを入力するとここに表示されます。</div></div>
       </div>
 
       <div class="tab-panel" id="panel-checks" role="tabpanel" aria-labelledby="tab-checks">
         <div class="panel-head"><div><h3 data-i18n="checksTitle">文章チェック</h3><p data-i18n="checksDesc">機械的に見つけられる「気になる点」を軽くチェックします。</p></div></div>
+        <p class="xray-note" data-i18n="invisibleNote">見えない文字には、改行制御や組版、ファイル先頭の BOM など意図した用途があります。絵文字や文字の結合に使う ZWJ / ZWNJ は対象外です。</p>
         <div class="checks-list" id="checksList"></div>
         <div class="style-meter"><strong data-i18n="styleLabel">文体</strong><span id="styleResult">—</span></div>
       </div>
@@ -725,7 +750,7 @@
   <footer>
     <div class="footer-line">
       <span>Browser Kitty · Text Inspector</span>
-      <span id="buildInfo">v1.0.0 · 2026-08-23 15:50 UTC</span>
+      <span id="buildInfo">v1.0.0 · 2026-10-05 15:39 UTC</span>
     </div>
   </footer>
 
@@ -753,6 +778,7 @@
       <section class="help-section"><h3 data-i18n="helpHowTitle">使い方</h3><ul><li data-i18n="helpHow1">テキスト欄に文章を入力・貼り付けすると、すぐに各指標を更新します。</li><li data-i18n="helpHow2">「頻出語」の単語を押すと、X-Ray 内の該当箇所を強調します。</li><li data-i18n="helpHow3">文章チェックの項目を押すと、X-Ray の該当箇所へ直接ジャンプします。</li><li data-i18n="helpHow4">目標文字数を設定すると、残り文字数または超過文字数を表示します。スマホでは固定バー上部のミニメーターでも常に確認できます。</li><li data-i18n="helpHow5">スマホの固定バーから入力・分析へ移動でき、元に戻す / やり直すも実行できます。キーボードショートカットにも対応し、サンプル・クリアは実行前に確認します。</li></ul></section>
       <section class="help-section"><h3 data-i18n="helpPrivacyTitle">プライバシー</h3><p data-i18n="helpPrivacy">入力した文章はサーバーへ送信しません。分析はすべてブラウザ内で行い、入力内容は復元用として localStorage に保存します。</p></section>
       <section class="help-section"><h3 data-i18n="helpNotesTitle">注意事項</h3><ul><li data-i18n="helpNotes1">単語分割、読了時間、文体判定は目安です。日本語の形態素解析を行う専用辞書は使用していません。</li><li data-i18n="helpNotes2">ブラウザのサイトデータを削除すると、自動保存した文章も消えます。重要な原稿の保管用途には使わないでください。</li><li data-i18n="helpNotes3">X-Ray の「長い文」は 80 文字超を機械的に示すもので、文章の良し悪しを断定するものではありません。</li></ul></section>
+      <section class="help-section"><h3 data-i18n="invisibleTitle">見えない文字チェック</h3><p data-i18n="helpInvisible">ZWSP (U+200B)、NBSP (U+00A0)、NNBSP (U+202F)、WJ (U+2060)、BOM (U+FEFF) を種類・件数で確認できます。項目を押すと X-Ray の先頭の該当箇所へ移動します。「前へ」「次へ」で同じ種類の箇所を順に確認できます（現在位置 / 件数を表示、端で停止）。編集や履歴操作で移動状態はリセットします。マーカーは最大1,000件（選択した箇所を含む）。件数は分析範囲内の全件を数えます。</p><p data-i18n="invisibleNote">見えない文字には、改行制御や組版、ファイル先頭の BOM など意図した用途があります。絵文字や文字の結合に使う ZWJ / ZWNJ は対象外です。</p><p data-i18n="invisibleXrayNote">[ZWSP] などの表示は X-Ray 専用です。入力とコピーする原文は変わりません。</p></section>
       <!-- APP:HELP:END -->
     </div>
   </dialog>
@@ -771,6 +797,15 @@
       const SETTINGS_KEY = 'browser-kitty:text-inspector:settings:v1';
       const MAX_LIVE_ANALYSIS = 200000;
       const LONG_SENTENCE_THRESHOLD = 80;
+      const MAX_INVISIBLE_MARKERS = 1000;
+      const INVISIBLE_TYPES = [
+        { char: '\u200B', code: 'U+200B', marker: 'ZWSP', label: 'invisibleZwsp' },
+        { char: '\u00A0', code: 'U+00A0', marker: 'NBSP', label: 'invisibleNbsp' },
+        { char: '\u202F', code: 'U+202F', marker: 'NNBSP', label: 'invisibleNnbsp' },
+        { char: '\u2060', code: 'U+2060', marker: 'WJ', label: 'invisibleWj' },
+        { char: '\uFEFF', code: 'U+FEFF', marker: 'BOM', label: 'invisibleBom' }
+      ];
+      const INVISIBLE_BY_CHAR = new Map(INVISIBLE_TYPES.map((type) => [type.char, type]));
       const HISTORY_MAX_ENTRIES = 50;
       const HISTORY_MAX_CHARS = 4000000;
 
@@ -782,10 +817,11 @@
           tabOverview: '概要', tabComposition: '構成', tabFrequency: '頻出語', tabXray: 'X-Ray', tabChecks: '文章チェック', overviewTitle: '文章の基本情報', overviewDesc: 'カウント条件の違いもまとめて確認できます。', charsWithSpace: '文字数（空白込み）', charsNoSpace: '文字数（空白除外）', lines: '行数', avgSentence: '1文の平均', longestSentence: '最長の文', manuscript: '原稿用紙換算', uniqueWords: '異なる単語', topWord: '最多の単語', unitChars: '文字', sheetsApprox: '枚（約）', times: '{count}回',
           compositionTitle: '文字の構成', compositionDesc: '空白を除いた文字に対する割合です。', compKanji: '漢字', compHiragana: 'ひらがな', compKatakana: 'カタカナ', compLatin: '英数字', compPunctuation: '記号・その他',
           frequencyTitle: 'よく使っている単語', frequencyDesc: 'クリックすると X-Ray でその単語を強調します。', frequencyNote: '日本語はブラウザの Intl.Segmenter を優先して分かち書きします。助詞など一部の一般語はランキングから除外します。', noFrequency: '頻出語を表示するには、もう少し文章を入力してください。',
-          xrayTitle: 'Text X-Ray', xrayDesc: '長い文と、選んだ頻出語を本文上で見つけます。', legendLong: '長い文（80文字超）', legendWord: '頻出語を選択すると強調', legendSelected: '「{word}」を強調中', emptyPreview: 'テキストを入力するとここに表示されます。',
+          invisiblePrevious: '前へ', invisibleNext: '次へ', invisiblePreviousLabel: '同じ種類の見えない文字の前の箇所', invisibleNextLabel: '同じ種類の見えない文字の次の箇所', invisibleTitle: '見えない文字チェック', invisibleZwsp: 'ゼロ幅スペース', invisibleNbsp: '改行しない空白', invisibleNnbsp: '幅の狭い改行しない空白', invisibleWj: 'ワードジョイナー', invisibleBom: 'BOM / ゼロ幅改行なし空白', invisibleCheckTitle: '{name} ({code})', invisibleCheckBodyOne: '{count} 件あります。意図した使用か、X-Ray で位置を確認できます。', invisibleCheckBody: '{count} 件あります。意図した使用か、X-Ray で位置を確認できます。', invisibleNote: '見えない文字には、改行制御や組版、ファイル先頭の BOM など意図した用途があります。絵文字や文字の結合に使う ZWJ / ZWNJ は対象外です。', invisibleXrayNote: '[ZWSP] などの表示は X-Ray 専用です。入力とコピーする原文は変わりません。', invisibleMarkerLimit: '見えない文字のマーカーは最大 {count} 件（選択した箇所を含む）です。件数は分析範囲内の全件を数えています。', helpInvisible: 'ZWSP (U+200B)、NBSP (U+00A0)、NNBSP (U+202F)、WJ (U+2060)、BOM (U+FEFF) を種類・件数で確認できます。項目を押すと X-Ray の先頭の該当箇所へ移動します。「前へ」「次へ」で同じ種類の箇所を順に確認できます（現在位置 / 件数を表示、端で停止）。編集や履歴操作で移動状態はリセットします。マーカーは最大1,000件（選択した箇所を含む）。件数は分析範囲内の全件を数えます。',
+          xrayTitle: 'Text X-Ray', xrayDesc: '長い文・頻出語・見えない文字の位置を確認します。', legendLong: '長い文（80文字超）', legendWord: '頻出語を選択すると強調', legendSelected: '「{word}」を強調中', emptyPreview: 'テキストを入力するとここに表示されます。',
           checksTitle: '文章チェック', checksDesc: '機械的に見つけられる「気になる点」を軽くチェックします。', styleLabel: '文体', checkEmptyTitle: 'まだチェックする文章がありません', checkEmptyBody: '文章を入力すると、長い文や表記の傾向を確認します。', checkGoodTitle: '大きな引っかかりは見つかりませんでした', checkGoodBody: '現在の簡易チェックでは、目立った項目はありません。', checkLongTitle: '長い文が {count} 文あります', checkLongBody: '80文字を超える文を X-Ray で下線表示しています。分割できる箇所がないか確認してみてください。', checkVeryLongTitle: 'かなり長い文があります', checkVeryLongBody: '最長 {count} 文字です。読み手が途中で迷わないか確認すると安心です。', checkRepeatTitle: '同じ単語が続いています', checkRepeatBody: '「{word}」が連続する箇所があります。意図した繰り返しか確認してください。', checkSpaceTitle: '連続した空白があります', checkSpaceBody: '{count} 箇所で空白が2文字以上続いています。', checkPuncTitle: '同じ句読点・記号が続いています', checkPuncBody: '{count} 箇所見つかりました。装飾目的でなければ整理できます。', checkJump: '該当箇所を見る', mobileMeterLabel: '文字数サマリー。押すと集計へ移動します', mobileNavLabel: 'スマホ操作', mobileNavInput: '入力', mobileNavAnalysis: '分析', mobileNavUndo: '戻す', mobileNavRedo: '進む', mobileChars: '{count}文字', mobileWords: '{count}単語', mobileTargetRemain: 'あと{count}文字', mobileTargetOver: '{count}文字超過', mobileTargetExact: '目標ちょうど', stylePolite: '「です・ます」調が中心', stylePlain: '「だ・である」調が中心', styleMixed: '「です・ます」調と「だ・である」調が混在', styleUnknown: '判定できる文末がまだ少なめです',
           helpTitle: '使い方と注意事項', helpHowTitle: '使い方', helpHow1: 'テキスト欄に文章を入力・貼り付けすると、すぐに各指標を更新します。', helpHow2: '「頻出語」の単語を押すと、X-Ray 内の該当箇所を強調します。', helpHow3: '文章チェックの項目を押すと、X-Ray の該当箇所へ直接ジャンプします。', helpHow4: '目標文字数を設定すると、残り文字数または超過文字数を表示します。スマホでは固定バー上部のミニメーターでも常に確認できます。', helpHow5: 'スマホの固定バーから入力・分析へ移動でき、元に戻す / やり直すも実行できます。キーボードショートカットにも対応し、サンプル・クリアは実行前に確認します。', helpPrivacyTitle: 'プライバシー', helpPrivacy: '入力した文章はサーバーへ送信しません。分析はすべてブラウザ内で行い、入力内容は復元用として localStorage に保存します。', helpNotesTitle: '注意事項', helpNotes1: '単語分割、読了時間、文体判定は目安です。日本語の形態素解析を行う専用辞書は使用していません。', helpNotes2: 'ブラウザのサイトデータを削除すると、自動保存した文章も消えます。重要な原稿の保管用途には使わないでください。', helpNotes3: 'X-Ray の「長い文」は 80 文字超を機械的に示すもので、文章の良し悪しを断定するものではありません。',
-          confirmSampleTitle: 'サンプルを読み込みますか？', confirmSampleMessage: '現在の文章をサンプル文章に置き換えます。あとから「元に戻す」で復元できます。', confirmSampleAction: 'サンプルを読み込む', confirmClearTitle: '文章をクリアしますか？', confirmClearMessage: '入力中の文章を空にします。あとから「元に戻す」で復元できます。', confirmClearAction: 'クリアする', redoDone: 'やり直しました', undoDone: '元に戻しました', copied: 'コピーしました', copyFailed: 'コピーできませんでした', cleared: '文章をクリアしました', sampleLoaded: 'サンプルを読み込みました', restored: '元に戻しました', analysisLimited: '20万文字を超えたため、頻出語・X-Ray・文章チェックは先頭20万文字を分析しています。'
+          confirmSampleTitle: 'サンプルを読み込みますか？', confirmSampleMessage: '現在の文章をサンプル文章に置き換えます。あとから「元に戻す」で復元できます。', confirmSampleAction: 'サンプルを読み込む', confirmClearTitle: '文章をクリアしますか？', confirmClearMessage: '入力中の文章を空にします。あとから「元に戻す」で復元できます。', confirmClearAction: 'クリアする', redoDone: 'やり直しました', undoDone: '元に戻しました', copied: 'コピーしました', copyFailed: 'コピーできませんでした', cleared: '文章をクリアしました', sampleLoaded: 'サンプルを読み込みました', restored: '元に戻しました', analysisLimited: '20万 UTF-16 コード単位を超えたため、頻出語・X-Ray・文章チェック（見えない文字の件数を含む）は先頭20万単位のみを分析しています。'
         },
         en: {
           brandMeta: 'Count, measure, and inspect your writing', introTitle: 'See beyond the character count.', introBody: 'Paste text to inspect counts, reading time, character mix, frequent words, long sentences, and writing-style tendencies in real time.', localBadge: 'Processed only in your browser',
@@ -794,17 +830,18 @@
           tabOverview: 'Overview', tabComposition: 'Composition', tabFrequency: 'Frequent words', tabXray: 'X-Ray', tabChecks: 'Checks', overviewTitle: 'Text basics', overviewDesc: 'See several counting methods together.', charsWithSpace: 'Characters (with spaces)', charsNoSpace: 'Characters (no whitespace)', lines: 'Lines', avgSentence: 'Average sentence', longestSentence: 'Longest sentence', manuscript: '400-char sheets', uniqueWords: 'Unique words', topWord: 'Top word', unitChars: 'chars', sheetsApprox: 'sheets (approx.)', times: '{count}×',
           compositionTitle: 'Character composition', compositionDesc: 'Share of non-whitespace characters.', compKanji: 'Kanji', compHiragana: 'Hiragana', compKatakana: 'Katakana', compLatin: 'Latin / digits', compPunctuation: 'Symbols / other',
           frequencyTitle: 'Words you use often', frequencyDesc: 'Select a word to highlight it in X-Ray.', frequencyNote: 'Japanese uses Intl.Segmenter when available. Some common particles and stop words are excluded from the ranking.', noFrequency: 'Enter a little more text to show frequent words.',
-          xrayTitle: 'Text X-Ray', xrayDesc: 'Find long sentences and the frequent word you selected.', legendLong: 'Long sentence (>80 chars)', legendWord: 'Select a frequent word to highlight', legendSelected: 'Highlighting “{word}”', emptyPreview: 'Your text will appear here.',
+          invisiblePrevious: 'Previous', invisibleNext: 'Next', invisiblePreviousLabel: 'Previous occurrence of this invisible character', invisibleNextLabel: 'Next occurrence of this invisible character', invisibleTitle: 'Invisible-character check', invisibleZwsp: 'Zero-width space', invisibleNbsp: 'Non-breaking space', invisibleNnbsp: 'Narrow non-breaking space', invisibleWj: 'Word joiner', invisibleBom: 'BOM / zero-width no-break space', invisibleCheckTitle: '{name} ({code})', invisibleCheckBodyOne: '{count} occurrence. Review its position in X-Ray to see whether it is intentional.', invisibleCheckBody: '{count} occurrences. Review their positions in X-Ray to see whether they are intentional.', invisibleNote: 'These characters can be intentional, for line breaking, typography, or a file-leading BOM. ZWJ / ZWNJ, used in emoji and writing systems, are excluded.', invisibleXrayNote: 'Labels such as [ZWSP] appear only in X-Ray. Your input and copied text stay unchanged.', invisibleMarkerLimit: 'Invisible-character markers are limited to {count} occurrences, including the selected one. Counts include every occurrence in the analyzed text.', helpInvisible: 'Review ZWSP (U+200B), NBSP (U+00A0), NNBSP (U+202F), WJ (U+2060), and BOM (U+FEFF) by type and count. Activate a check to jump to its first occurrence in X-Ray. Use Previous / Next to inspect the same type in order; position / count is shown and navigation stops at the ends. Editing or history actions reset navigation. At most 1,000 markers are shown, including the selected occurrence; counts cover all analyzed text.',
+          xrayTitle: 'Text X-Ray', xrayDesc: 'Find long sentences, selected words, and invisible characters.', legendLong: 'Long sentence (>80 chars)', legendWord: 'Select a frequent word to highlight', legendSelected: 'Highlighting “{word}”', emptyPreview: 'Your text will appear here.',
           checksTitle: 'Writing checks', checksDesc: 'Lightweight mechanical checks for things worth reviewing.', styleLabel: 'Style', checkEmptyTitle: 'Nothing to check yet', checkEmptyBody: 'Enter text to inspect sentence length and writing patterns.', checkGoodTitle: 'No obvious issues found', checkGoodBody: 'The current lightweight checks did not find anything notable.', checkLongTitle: '{count} long sentences found', checkLongBody: 'Sentences over 80 characters are underlined in X-Ray. Consider whether any can be split.', checkVeryLongTitle: 'A very long sentence was found', checkVeryLongBody: 'The longest sentence is {count} characters. Check whether the reader can follow it comfortably.', checkRepeatTitle: 'A word is repeated back-to-back', checkRepeatBody: '“{word}” appears consecutively. Check whether the repetition is intentional.', checkSpaceTitle: 'Repeated spaces found', checkSpaceBody: '{count} places contain two or more consecutive spaces.', checkPuncTitle: 'Repeated punctuation found', checkPuncBody: '{count} places contain repeated punctuation or symbols.', checkJump: 'View occurrence', mobileMeterLabel: 'Character count summary. Activate to jump to the summary.', mobileNavLabel: 'Mobile actions', mobileNavInput: 'Input', mobileNavAnalysis: 'Analysis', mobileNavUndo: 'Undo', mobileNavRedo: 'Redo', mobileChars: '{count} chars', mobileWords: '{count} words', mobileTargetRemain: '{count} left', mobileTargetOver: '{count} over', mobileTargetExact: 'On target', stylePolite: 'Mostly polite Japanese (です・ます)', stylePlain: 'Mostly plain Japanese (だ・である)', styleMixed: 'Mixed polite and plain Japanese endings', styleUnknown: 'Not enough sentence endings to classify',
           helpTitle: 'How to use & notes', helpHowTitle: 'How to use', helpHow1: 'Type or paste text and the metrics update immediately.', helpHow2: 'Select a frequent word to highlight it in X-Ray.', helpHow3: 'Activate an actionable writing check to jump directly to the matching X-Ray occurrence.', helpHow4: 'Set a character target to see how many characters remain or exceed it. On phones, the mini meter at the top of the fixed bottom bar keeps this visible while you work.', helpHow5: 'The phone bottom bar also jumps to Input / Analysis and provides Undo / Redo. Sample and Clear ask for confirmation before replacing text.', helpPrivacyTitle: 'Privacy', helpPrivacy: 'Your text is never sent to a server. Analysis happens entirely in the browser, and the input is stored in localStorage so it can be restored.', helpNotesTitle: 'Notes', helpNotes1: 'Word segmentation, reading times, and style detection are estimates. No full Japanese morphological dictionary is used.', helpNotes2: 'Clearing browser site data also removes the autosaved text. Do not rely on this tool as the only copy of important writing.', helpNotes3: 'X-Ray mechanically marks sentences over 80 characters; it does not judge whether the writing is good or bad.',
-          confirmSampleTitle: 'Load the sample?', confirmSampleMessage: 'This replaces the current text with the sample. You can restore it later with Undo.', confirmSampleAction: 'Load sample', confirmClearTitle: 'Clear the text?', confirmClearMessage: 'This removes the current text. You can restore it later with Undo.', confirmClearAction: 'Clear text', redoDone: 'Redone', undoDone: 'Undone', copied: 'Copied', copyFailed: 'Could not copy', cleared: 'Text cleared', sampleLoaded: 'Sample loaded', restored: 'Restored', analysisLimited: 'For inputs over 200,000 characters, frequent words, X-Ray, and writing checks analyze only the first 200,000 characters.'
+          confirmSampleTitle: 'Load the sample?', confirmSampleMessage: 'This replaces the current text with the sample. You can restore it later with Undo.', confirmSampleAction: 'Load sample', confirmClearTitle: 'Clear the text?', confirmClearMessage: 'This removes the current text. You can restore it later with Undo.', confirmClearAction: 'Clear text', redoDone: 'Redone', undoDone: 'Undone', copied: 'Copied', copyFailed: 'Could not copy', cleared: 'Text cleared', sampleLoaded: 'Sample loaded', restored: 'Restored', analysisLimited: 'For inputs over 200,000 UTF-16 code units, frequent words, X-Ray, and writing checks (including invisible-character counts) analyze only the first 200,000 units.'
         }
       };
 
       const jaStopWords = new Set('これ それ あれ ここ そこ ため よう もの こと ところ そして しかし また ただ ので のに から まで より など です ます でした ません する した して いる ある なる なった この その あの どの として について による により でも では という といった できる でき なく ない なる なら へ の が を に は と で も や か ね よ'.split(' '));
       const enStopWords = new Set('the a an and or but if then else of to in on at for from with without as by is are was were be been being it its this that these those i you he she we they me him her us them my your our their not no yes do does did done can could should would may might will just very more most less many much some any all each every into over under again also than so because while where when what who how'.split(' '));
 
-      const state = { lang: 'ja', target: 0, selectedWord: '', focusRange: null, undo: null, saveTimer: null, analysisTimer: null, historyTimer: null, history: [], historyIndex: -1, applyingHistory: false, confirmResolver: null };
+      const state = { lang: 'ja', target: 0, selectedWord: '', focusRange: null, invisibleNavigation: null, undo: null, saveTimer: null, analysisTimer: null, historyTimer: null, history: [], historyIndex: -1, applyingHistory: false, confirmResolver: null };
       const $ = (id) => document.getElementById(id);
       const els = {
         input: $('textInput'), language: $('languageButton'), help: $('helpButton'), helpDialog: $('helpDialog'), helpClose: $('helpClose'),
@@ -812,7 +849,8 @@
         charCount: $('charCount'), wordCount: $('wordCount'), sentenceCount: $('sentenceCount'), paragraphCount: $('paragraphCount'), readingTime: $('readingTime'), speechTime: $('speechTime'),
         targetSelect: $('targetSelect'), targetInput: $('targetInput'), targetResult: $('targetResult'), targetPercent: $('targetPercent'), targetProgress: $('targetProgress'),
         mChars: $('mChars'), mCharsNoSpace: $('mCharsNoSpace'), mLines: $('mLines'), mAvgSentence: $('mAvgSentence'), mLongest: $('mLongest'), mManuscript: $('mManuscript'), mUnique: $('mUnique'), mTopWord: $('mTopWord'), mTopWordCount: $('mTopWordCount'),
-        compositionList: $('compositionList'), frequencyList: $('frequencyList'), frequencyNote: $('frequencyNote'), xrayPreview: $('xrayPreview'), selectedWordLegend: $('selectedWordLegend'), checksList: $('checksList'), styleResult: $('styleResult'),
+        compositionList: $('compositionList'), frequencyList: $('frequencyList'), frequencyNote: $('frequencyNote'), xrayPreview: $('xrayPreview'), xrayMarkerNote: $('xrayMarkerNote'), selectedWordLegend: $('selectedWordLegend'), checksList: $('checksList'), styleResult: $('styleResult'),
+        invisibleNavigation: $('invisibleNavigation'), invisibleNavigationLabel: $('invisibleNavigationLabel'), invisiblePosition: $('invisiblePosition'), invisiblePrevious: $('invisiblePrevious'), invisibleNext: $('invisibleNext'),
         mobileMeter: $('mobileMeter'), mobileMeterMain: $('mobileMeterMain'), mobileMeterSub: $('mobileMeterSub'), mobileMeterProgress: $('mobileMeterProgress'), mobileMeterProgressBar: $('mobileMeterProgressBar'),
         mobileBottomBar: $('appMobileBottomBar'), mobileUndoButton: $('mobileUndoButton'), mobileRedoButton: $('mobileRedoButton'),
         toast: $('toast'), toastMessage: $('toastMessage'), toastAction: $('toastAction'), toastClose: $('toastClose'), confirmDialog: $('confirmDialog'), confirmTitle: $('confirmTitle'), confirmMessage: $('confirmMessage'), confirmClose: $('confirmClose'), confirmCancel: $('confirmCancel'), confirmAccept: $('confirmAccept')
@@ -903,6 +941,23 @@
         return `${min}:${String(sec).padStart(2, '0')}`;
       }
 
+      function scanInvisibleCharacters(text) {
+        const groups = new Map();
+        const ranges = [];
+        let total = 0;
+        // Offsets match String.slice and the existing X-Ray's UTF-16 ranges.
+        for (let start = 0; start < text.length; start++) {
+          const type = INVISIBLE_BY_CHAR.get(text[start]);
+          if (!type) continue;
+          const range = { start, end: start + 1, ...type };
+          if (!groups.has(type.code)) groups.set(type.code, { ...type, count: 0, firstRange: { start, end: start + 1 } });
+          groups.get(type.code).count++;
+          total++;
+          if (ranges.length < MAX_INVISIBLE_MARKERS) ranges.push(range);
+        }
+        return { total, groups: INVISIBLE_TYPES.map((type) => groups.get(type.code)).filter(Boolean), ranges };
+      }
+
       function buildAnalysis(fullText) {
         const text = fullText.slice(0, MAX_LIVE_ANALYSIS);
         const chars = unicodeLength(fullText);
@@ -917,7 +972,7 @@
         return {
           fullText, text, chars, charsNoSpace: nonWhitespaceLength(fullText), wordsFull, sentencesFull, paragraphs,
           lines: getLineCount(fullText), words, sentences, sentenceSegments, sentenceLengths, frequency, scripts: countScripts(fullText),
-          limited: fullText.length > MAX_LIVE_ANALYSIS,
+          limited: fullText.length > MAX_LIVE_ANALYSIS, invisible: scanInvisibleCharacters(text),
           longest: sentenceLengths.length ? Math.max(...sentenceLengths) : 0,
           avgSentence: sentenceLengths.length ? sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length : 0
         };
@@ -1021,8 +1076,10 @@
           const countEl = document.createElement('span'); countEl.className = 'frequency-count'; countEl.textContent = t('times', { count: formatNumber(count) });
           button.append(wordEl, countEl);
           button.addEventListener('click', () => {
+            if (!isCurrentAnalysis(a)) return;
             state.selectedWord = state.selectedWord === word ? '' : word;
             state.focusRange = null;
+            resetInvisibleNavigation();
             renderFrequency(a); renderXray(a); switchTab('xray');
           });
           els.frequencyList.appendChild(button);
@@ -1046,8 +1103,63 @@
 
       function overlaps(range, start, end) { return range && range.start < end && range.end > start; }
 
+      function resetInvisibleNavigation() {
+        state.invisibleNavigation = null;
+        els.invisibleNavigation.hidden = true;
+        els.invisiblePrevious.disabled = true;
+        els.invisibleNext.disabled = true;
+        els.invisiblePosition.textContent = '';
+        els.invisibleNavigationLabel.textContent = '';
+      }
+
+      // A card may still be visible during the input debounce. Refresh the whole
+      // view, but never apply that card's old offsets or frequency snapshot.
+      function isCurrentAnalysis(analysis) {
+        if (analysis.fullText === els.input.value) return true;
+        state.focusRange = null;
+        resetInvisibleNavigation();
+        analyzeNow();
+        return false;
+      }
+
+      function renderInvisibleNavigation(analysis) {
+        const nav = state.invisibleNavigation;
+        if (!nav) return;
+        if (nav.analysis.fullText !== analysis.fullText) {
+          state.focusRange = null;
+          resetInvisibleNavigation();
+          return;
+        }
+        nav.analysis = analysis;
+        const group = analysis.invisible.groups.find((item) => item.code === nav.code);
+        els.invisibleNavigation.hidden = false;
+        els.invisibleNavigationLabel.textContent = t('invisibleCheckTitle', { name: t(group.label), code: group.code });
+        els.invisiblePosition.textContent = `${formatNumber(nav.ordinal)} / ${formatNumber(group.count)}`;
+        els.invisiblePrevious.disabled = nav.ordinal <= 1;
+        els.invisibleNext.disabled = nav.ordinal >= group.count;
+      }
+
+      function moveInvisibleOccurrence(direction) {
+        const nav = state.invisibleNavigation;
+        if (!nav || !isCurrentAnalysis(nav.analysis)) return;
+        const group = nav.analysis.invisible.groups.find((item) => item.code === nav.code);
+        if ((direction < 0 && nav.ordinal <= 1) || (direction > 0 && nav.ordinal >= group.count)) return;
+        // Scan only the analyzed prefix on demand; no unbounded occurrence array.
+        const start = direction > 0
+          ? nav.analysis.text.indexOf(group.char, nav.start + 1)
+          : nav.analysis.text.lastIndexOf(group.char, nav.start - 1);
+        if (start < 0) return;
+        nav.start = start;
+        nav.ordinal += direction;
+        state.focusRange = { start, end: start + 1 };
+        renderXray(nav.analysis);
+      }
+
       function renderXray(a) {
+        renderInvisibleNavigation(a);
         els.xrayPreview.replaceChildren();
+        els.xrayMarkerNote.hidden = a.invisible.total <= MAX_INVISIBLE_MARKERS;
+        els.xrayMarkerNote.textContent = els.xrayMarkerNote.hidden ? '' : t('invisibleMarkerLimit', { count: formatNumber(MAX_INVISIBLE_MARKERS) });
         els.selectedWordLegend.textContent = state.selectedWord ? t('legendSelected', { word: state.selectedWord }) : t('legendWord');
         if (!a.text) {
           const empty = document.createElement('div'); empty.className = 'empty-state'; empty.textContent = t('emptyPreview'); els.xrayPreview.appendChild(empty); return;
@@ -1060,25 +1172,33 @@
         const focus = state.focusRange && state.focusRange.start < a.text.length
           ? { start: state.focusRange.start, end: Math.min(state.focusRange.end, a.text.length) }
           : null;
+        let invisibleRanges = a.invisible.ranges;
+        // A rare type beyond the display cap must still have a readable jump target.
+        const focusedType = focus && focus.end === focus.start + 1 ? INVISIBLE_BY_CHAR.get(a.text[focus.start]) : null;
+        if (focusedType && !invisibleRanges.some((range) => range.start === focus.start)) {
+          invisibleRanges = [...invisibleRanges.slice(0, MAX_INVISIBLE_MARKERS - 1), { ...focus, ...focusedType }];
+        }
         const boundaries = new Set([0, a.text.length]);
-        [...longRanges, ...wordRanges, ...(focus ? [focus] : [])].forEach((range) => {
+        [...longRanges, ...wordRanges, ...invisibleRanges, ...(focus ? [focus] : [])].forEach((range) => {
           boundaries.add(Math.max(0, range.start));
           boundaries.add(Math.min(a.text.length, range.end));
         });
         const points = Array.from(boundaries).sort((x, y) => x - y);
         let focusNode = null;
 
-        let longIndex = 0; let wordIndex = 0;
+        let longIndex = 0; let wordIndex = 0; let invisibleIndex = 0;
         for (let i = 0; i < points.length - 1; i++) {
           const start = points[i]; const end = points[i + 1];
           if (end <= start) continue;
           while (longIndex < longRanges.length && longRanges[longIndex].end <= start) longIndex++;
           while (wordIndex < wordRanges.length && wordRanges[wordIndex].end <= start) wordIndex++;
+          while (invisibleIndex < invisibleRanges.length && invisibleRanges[invisibleIndex].end <= start) invisibleIndex++;
+          const invisible = invisibleRanges[invisibleIndex]?.start === start ? invisibleRanges[invisibleIndex] : null;
           const chunk = a.text.slice(start, end);
           const isLong = Boolean(longRanges[longIndex] && overlaps(longRanges[longIndex], start, end));
           const isWord = Boolean(wordRanges[wordIndex] && overlaps(wordRanges[wordIndex], start, end));
           const isFocus = overlaps(focus, start, end);
-          if (!isLong && !isWord && !isFocus) {
+          if (!isLong && !isWord && !isFocus && !invisible) {
             els.xrayPreview.appendChild(document.createTextNode(chunk));
             continue;
           }
@@ -1089,7 +1209,12 @@
             span.classList.add('issue-focus');
             if (!focusNode) focusNode = span;
           }
-          span.textContent = chunk;
+          if (invisible) {
+            span.classList.add('invisible-marker');
+            span.textContent = `[${invisible.marker}]`;
+            span.title = `${t(invisible.label)} (${invisible.code})`;
+            span.setAttribute('aria-label', span.title);
+          } else span.textContent = chunk;
           els.xrayPreview.appendChild(span);
         }
 
@@ -1097,7 +1222,10 @@
           const note = document.createElement('div'); note.className = 'freq-note'; note.style.marginTop = '12px'; note.textContent = t('analysisLimited'); els.xrayPreview.appendChild(note);
         }
         if (focusNode) {
+          focusNode.tabIndex = -1;
           window.requestAnimationFrame(() => {
+            if (!focusNode.isConnected || a.fullText !== els.input.value || state.focusRange?.start !== focus.start || state.focusRange?.end !== focus.end) return;
+            focusNode.focus({ preventScroll: true });
             focusNode.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
           });
         }
@@ -1144,28 +1272,29 @@
         return match ? { start: match.index, end: match.index + match[0].length } : null;
       }
 
-      function jumpToIssue(range, word = '') {
-        if (!range) return;
+      function jumpToIssue(range, word, analysis, invisibleCode) {
+        if (!range || !isCurrentAnalysis(analysis)) return;
         state.selectedWord = word || '';
         state.focusRange = range;
-        const analysis = buildAnalysis(els.input.value);
+        resetInvisibleNavigation();
+        if (invisibleCode) state.invisibleNavigation = { code: invisibleCode, ordinal: 1, start: range.start, analysis };
         renderFrequency(analysis);
         switchTab('xray');
         renderXray(analysis);
       }
 
-      function addCheck(tone, title, body, range = null, word = '') {
+      function addCheck(tone, title, body, range = null, word = '', analysis = null, invisibleCode = '') {
         const actionable = Boolean(range);
         const card = document.createElement('div');
         if (actionable) {
           card.className = `check-card actionable ${tone}`;
           card.setAttribute('role', 'button');
           card.tabIndex = 0;
-          card.addEventListener('click', () => jumpToIssue(range, word));
+          card.addEventListener('click', () => jumpToIssue(range, word, analysis, invisibleCode));
           card.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
-            jumpToIssue(range, word);
+            jumpToIssue(range, word, analysis, invisibleCode);
           });
         } else {
           card.className = `check-card ${tone}`;
@@ -1186,32 +1315,36 @@
       function renderChecks(a) {
         els.checksList.replaceChildren();
         els.styleResult.textContent = t(getStyle(a.text));
-        if (!a.text.trim()) { addCheck('', t('checkEmptyTitle'), t('checkEmptyBody')); return; }
+        if (!a.text.length) { addCheck('', t('checkEmptyTitle'), t('checkEmptyBody')); return; }
         let issues = 0;
+        for (const group of a.invisible.groups) {
+          addCheck('warning', t('invisibleCheckTitle', { name: t(group.label), code: group.code }), t(group.count === 1 ? 'invisibleCheckBodyOne' : 'invisibleCheckBody', { count: formatNumber(group.count) }), group.firstRange, '', a, group.code);
+          issues++;
+        }
         const longParts = a.sentenceSegments.filter((part) => unicodeLength(part.text.trim()) > LONG_SENTENCE_THRESHOLD);
         const longestPart = longParts.reduce((best, part) => !best || unicodeLength(part.text.trim()) > unicodeLength(best.text.trim()) ? part : best, null);
         if (a.longest > 160 && longestPart) {
-          addCheck('danger', t('checkVeryLongTitle'), t('checkVeryLongBody', { count: formatNumber(a.longest) }), { start: longestPart.start, end: longestPart.end });
+          addCheck('danger', t('checkVeryLongTitle'), t('checkVeryLongBody', { count: formatNumber(a.longest) }), { start: longestPart.start, end: longestPart.end }, '', a);
           issues++;
         } else if (longParts.length) {
-          addCheck('warning', t('checkLongTitle', { count: formatNumber(longParts.length) }), t('checkLongBody'), { start: longParts[0].start, end: longParts[0].end });
+          addCheck('warning', t('checkLongTitle', { count: formatNumber(longParts.length) }), t('checkLongBody'), { start: longParts[0].start, end: longParts[0].end }, '', a);
           issues++;
         }
         const repeated = findRepeatedAdjacentWord(a.text);
         if (repeated) {
-          addCheck('warning', t('checkRepeatTitle'), t('checkRepeatBody', { word: repeated.word }), { start: repeated.start, end: repeated.end }, repeated.word);
+          addCheck('warning', t('checkRepeatTitle'), t('checkRepeatBody', { word: repeated.word }), { start: repeated.start, end: repeated.end }, repeated.word, a);
           issues++;
         }
         const repeatedSpaceMatches = a.text.match(/ {2,}/gu) || [];
         const repeatedSpaceRange = firstRegexRange(a.text, / {2,}/gu);
         if (repeatedSpaceMatches.length) {
-          addCheck('warning', t('checkSpaceTitle'), t('checkSpaceBody', { count: formatNumber(repeatedSpaceMatches.length) }), repeatedSpaceRange);
+          addCheck('warning', t('checkSpaceTitle'), t('checkSpaceBody', { count: formatNumber(repeatedSpaceMatches.length) }), repeatedSpaceRange, '', a);
           issues++;
         }
         const repeatedPuncMatches = a.text.match(/([、。！？!?.,])\1+/gu) || [];
         const repeatedPuncRange = firstRegexRange(a.text, /([、。！？!?.,])\1+/gu);
         if (repeatedPuncMatches.length) {
-          addCheck('warning', t('checkPuncTitle'), t('checkPuncBody', { count: formatNumber(repeatedPuncMatches.length) }), repeatedPuncRange);
+          addCheck('warning', t('checkPuncTitle'), t('checkPuncBody', { count: formatNumber(repeatedPuncMatches.length) }), repeatedPuncRange, '', a);
           issues++;
         }
         if (!issues) addCheck('', t('checkGoodTitle'), t('checkGoodBody'));
@@ -1219,6 +1352,8 @@
       }
 
       function analyzeNow() {
+        window.clearTimeout(state.analysisTimer);
+        state.analysisTimer = null;
         const analysis = buildAnalysis(els.input.value);
         if (state.focusRange && state.focusRange.end > analysis.text.length) state.focusRange = null;
         renderSummary(analysis); renderTarget(analysis.chars); renderMobileMeter(analysis); renderComposition(analysis); renderFrequency(analysis); renderXray(analysis); renderChecks(analysis); updateSelection();
@@ -1302,6 +1437,7 @@
       function applyHistory(index, toastKey) {
         if (index < 0 || index >= state.history.length || index === state.historyIndex) return;
         state.applyingHistory = true; state.historyIndex = index; els.input.value = state.history[index]; state.applyingHistory = false; state.focusRange = null;
+        resetInvisibleNavigation();
         scheduleAnalysis(); els.input.focus(); updateHistoryButtons(); showToast(t(toastKey));
       }
 
@@ -1316,6 +1452,7 @@
       function replaceText(next, toastKey) {
         if (els.input.value === next) return;
         flushHistory(); els.input.value = next; state.focusRange = null; pushHistory(next); scheduleAnalysis(); els.input.focus();
+        resetInvisibleNavigation();
         showToast(t(toastKey), undoText);
       }
 
@@ -1432,7 +1569,9 @@
         els.targetInput.hidden = els.targetSelect.value !== 'custom';
       }
 
-      els.input.addEventListener('input', () => { state.focusRange = null; scheduleAnalysis(); scheduleHistory(); });
+      els.input.addEventListener('input', () => { state.focusRange = null; resetInvisibleNavigation(); scheduleAnalysis(); scheduleHistory(); });
+      els.invisiblePrevious.addEventListener('click', () => moveInvisibleOccurrence(-1));
+      els.invisibleNext.addEventListener('click', () => moveInvisibleOccurrence(1));
       ['select', 'keyup', 'mouseup', 'touchend'].forEach((event) => els.input.addEventListener(event, updateSelection));
       els.input.addEventListener('blur', flushHistory);
       els.copy.addEventListener('click', copyText);
