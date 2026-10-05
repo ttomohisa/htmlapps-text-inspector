@@ -8,6 +8,10 @@ const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'
 const readable = read('dist/index.html');
 const selfExtract = read('dist/index.self-extract.html');
 
+test('root download is the exact readable release', () => {
+  assert.equal(read('text-inspector.html'), readable, 'rebuild the root download together with dist');
+});
+
 test('standalone output matches the current source template', () => {
   const config = JSON.parse(read('app.config.json'));
   const report = JSON.parse(read('dist/build-size-report.json').replace(/^\uFEFF/, ''));

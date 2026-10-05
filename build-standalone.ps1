@@ -17,6 +17,7 @@ if ($html.Contains('{{VERSION}}') -or $html.Contains('{{BUILD_TIMESTAMP}}')) {
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 [System.IO.File]::WriteAllText((Join-Path $distDir '.nojekyll'), '', (New-Object System.Text.UTF8Encoding($false)))
 [System.IO.File]::WriteAllText($outPath, $html, (New-Object System.Text.UTF8Encoding($false)))
+[System.IO.File]::WriteAllText((Join-Path $root 'text-inspector.html'), $html, (New-Object System.Text.UTF8Encoding($false)))
 
 & (Join-Path $root 'scripts\build-self-extract.ps1') -InputPath $outPath -OutputPath (Join-Path $distDir 'index.self-extract.html')
 & (Join-Path $root 'scripts\verify-standalone.ps1') -HtmlPath $outPath

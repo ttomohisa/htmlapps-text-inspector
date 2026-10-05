@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added Previous / Next navigation for each invisible-character type, with bilingual controls, current / total position, disabled endpoints, and on-demand searching within the existing analysis limit. Navigation is transient and leaves original text, Copy, history and storage unchanged.
+- Fixed stale writing-check offsets and stale frequent-word previews when activated during the input debounce. An obsolete action now refreshes the current analysis without applying its old result.
+- Guarded deferred marker focus after edits and synchronized the root HTML download with the official readable build.
+- Added full-app event/debounce regression coverage and source/readable/self-extract parity checks. Browser keyboard, selection and visual validation remain a separate manual/browser check.
+
 - Added five invisible-character checks with Unicode names, counts, and keyboard-accessible X-Ray jumps.
 - Added readable X-Ray-only markers, with a 1,000-marker display cap and full counts within the existing first-200,000-UTF-16-unit analysis limit. Original text and Copy stay unchanged; ZWJ / ZWNJ remain excluded.
 - Added bilingual explanations, regression tests, and exact self-extract restoration verification.

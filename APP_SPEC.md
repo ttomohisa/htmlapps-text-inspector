@@ -5,7 +5,7 @@
 - **Name:** Text Inspector
 - **Purpose:** Count text and reveal lightweight structural signals that help users review writing.
 - **Primary users:** People drafting Japanese or English text on desktop or smartphone.
-- **Release artifacts:** `dist/index.html` and `dist/index.self-extract.html`.
+- **Release artifacts:** `dist/index.html`, its identical root download `text-inspector.html`, and `dist/index.self-extract.html`.
 
 ## 2. Core user flow
 
@@ -28,7 +28,9 @@
 - Lightweight checks for long sentences, repeated adjacent words, repeated spaces, and repeated punctuation.
 - Actionable writing-check cards for long sentences, repeated words, repeated spaces, and repeated punctuation; activating one opens X-Ray, highlights the matching range, and scrolls it into view.
 - Invisible-character checks for ZWSP (U+200B), NBSP (U+00A0), narrow NBSP (U+202F), word joiner (U+2060), and BOM / zero-width no-break space (U+FEFF), grouped by type, Unicode code point, and count. Whitespace-only inputs are checked too.
-- Each invisible-character check jumps to its first occurrence with a readable X-Ray marker; original input, autosave, and Copy are unchanged. ZWJ / ZWNJ are excluded because they are used in emoji and writing systems. Explain that the detected characters can also be intentional.
+- Each invisible-character check jumps to its first occurrence with a readable X-Ray marker. Previous / Next traverse the selected type in original UTF-16 order with a current / total position and disabled end buttons (no wrap); original input, autosave, and Copy are unchanged. ZWJ / ZWNJ are excluded because they are used in emoji and writing systems. Explain that the detected characters can also be intentional.
+- Invisible navigation is transient and resets immediately on input edits, confirmed Sample/Clear, Undo/Redo, or selecting a frequent word or another kind of check. Changing language preserves its type and position; choosing another invisible check starts at its first occurrence. Cancelled replacement leaves navigation unchanged.
+- Inspection actions must match the current editor text. Activating an outdated check or frequency item during the analysis debounce refreshes the view without applying obsolete offsets or rendering old text.
 - Lightweight Japanese style signal for `です・ます` / `だ・である` endings.
 - Optional target character count presets plus custom target.
 - Selected-range character and word count.
@@ -52,7 +54,7 @@
 - Main counts target smooth interaction around 100,000 characters on typical current browsers.
 - For input above 200,000 UTF-16 code units, expensive frequency/X-Ray/check analysis is limited to the first 200,000 while headline counts continue to use the full text.
 - Invisible-character counts cover that same analyzed prefix. Store and render at most 1,000 invisible-character markers; reserve a marker for a selected occurrence beyond that cap and show the display limit visibly. Counts are not capped at 1,000.
-- Keystroke analysis is debounced briefly.
+- Keystroke analysis is debounced briefly. Occurrence navigation searches the analyzed prefix on demand and does not store another unbounded occurrence array.
 
 ## 6. Limitations
 
@@ -79,4 +81,5 @@ Current stable Chromium, Firefox, and Safari on desktop and mobile. Direct `file
 - Target count reports remaining, exact, or over-target state.
 - Help accurately documents privacy, limitations, and localStorage risk.
 - Invisible-character jumps work with mouse, Enter, and Space and move keyboard focus into X-Ray. Markers can overlap existing sentence/word highlights without treating source text as HTML.
-- Regression tests cover Unicode offsets, whitespace-only inputs, marker/analysis limits, safe rendering, unchanged copy, cancellation and history. Repository verification runs them with Node.js 20 or later after rebuilding the releases.
+- Previous / Next are native buttons with Japanese/English accessible names and a polite position status. Navigation preserves original Copy, selection, history and storage.
+- Regression tests cover full-app input debounce, stale check/frequency actions, occurrence endpoints/type changes, language/history transitions, Unicode offsets, whitespace-only inputs, marker/analysis limits, safe rendering, unchanged copy, cancellation and history. Repository verification runs them with Node.js 20 or later after rebuilding the releases.

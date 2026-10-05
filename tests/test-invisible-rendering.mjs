@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { test } from 'node:test';
 
-const script = readFileSync(new URL('../src/index.template.html', import.meta.url), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
+const script = readFileSync(process.env.TEXT_INSPECTOR_HTML || new URL('../src/index.template.html', import.meta.url), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
 // Small DOM adapter for the renderer; full layout/browser coverage is separate.
 class Node {
   constructor(tag = '') { this.tag = tag; this.children = []; this.classes = new Set(); this.style = {}; this.attrs = {}; this.events = {}; this.dataset = {}; this.isConnected = true; this.hidden = false; }
@@ -24,7 +24,7 @@ class Node {
   close() { this.open = false; }
 }
 function harness() {
-  const ids = ['xrayPreview', 'xrayMarkerNote', 'selectedWordLegend', 'checksList', 'styleResult', 'frequencyList', 'frequencyNote', 'undoButton', 'redoButton', 'mobileUndoButton', 'mobileRedoButton', 'toast', 'toastMessage', 'toastAction', 'saved', 'confirmDialog', 'confirmTitle', 'confirmMessage', 'confirmAccept', 'confirmCancel', 'selection'];
+  const ids = ['invisibleNavigation', 'invisibleNavigationLabel', 'invisiblePosition', 'invisiblePrevious', 'invisibleNext', 'xrayPreview', 'xrayMarkerNote', 'selectedWordLegend', 'checksList', 'styleResult', 'frequencyList', 'frequencyNote', 'undoButton', 'redoButton', 'mobileUndoButton', 'mobileRedoButton', 'toast', 'toastMessage', 'toastAction', 'saved', 'confirmDialog', 'confirmTitle', 'confirmMessage', 'confirmAccept', 'confirmCancel', 'selection'];
   const els = Object.fromEntries(ids.map(id => [id, new Node()]));
   els.input = Object.assign(new Node('textarea'), { value: '', select() { this.selected = this.value; this.selectionStart = 0; this.selectionEnd = this.value.length; } });
   const frames = [];
