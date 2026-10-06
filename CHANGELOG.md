@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.0.1 - 2026-10-06
+
+- Standardized the Japanese privacy badge to `完全ローカル処理`, retaining the accurate English wording.
+- Added meaningful language-target accessible names and tooltips for the existing `EN` / `JA` header control.
+- Updated the canonical patch version once and added repeated header-language regression coverage.
 
 - Added Previous / Next navigation for each invisible-character type, with bilingual controls, current / total position, disabled endpoints, and on-demand searching within the existing analysis limit. Navigation is transient and leaves original text, Copy, history and storage unchanged.
 - Fixed stale writing-check offsets and stale frequent-word previews when activated during the input debounce. An obsolete action now refreshes the current analysis without applying its old result.

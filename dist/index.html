@@ -570,12 +570,12 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M5 6h14M5 10h10M5 14h12M5 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="17" r="3" stroke="currentColor" stroke-width="1.8"/><path d="m20.2 19.2 2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         </div>
         <div class="brand-copy">
-          <h1 class="brand-name">Text Inspector <span class="version-badge">v1.0.0</span></h1>
+          <h1 class="brand-name">Text Inspector <span class="version-badge">v1.0.1</span></h1>
           <p class="brand-meta" data-i18n="brandMeta">文章を数える、測る、見つける</p>
         </div>
       </div>
       <div class="header-actions">
-        <button type="button" class="language-button" id="languageButton" aria-label="Switch language">EN</button>
+        <button type="button" class="language-button" id="languageButton" aria-label="Switch to English" title="Switch to English">EN</button>
         <button type="button" class="icon-button header-icon-button" id="helpButton" aria-label="使い方と注意事項" title="使い方と注意事項">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.7 9a2.45 2.45 0 0 1 4.75.8c0 1.8-2.45 2.1-2.45 3.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
         </button>
@@ -591,7 +591,7 @@
       </div>
       <div class="local-badge">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/></svg>
-        <span data-i18n="localBadge">ブラウザ内だけで処理</span>
+        <span data-i18n="localBadge">完全ローカル処理</span>
       </div>
     </section>
 
@@ -750,7 +750,7 @@
   <footer>
     <div class="footer-line">
       <span>Browser Kitty · Text Inspector</span>
-      <span id="buildInfo">v1.0.0 · 2026-10-05 15:39 UTC</span>
+      <span id="buildInfo">v1.0.1 · 2026-10-06 09:09 UTC</span>
     </div>
   </footer>
 
@@ -811,7 +811,7 @@
 
       const translations = {
         ja: {
-          brandMeta: '文章を数える、測る、見つける', introTitle: '文字数の先まで、文章を見える化。', introBody: 'テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。', localBadge: 'ブラウザ内だけで処理',
+          brandMeta: '文章を数える、測る、見つける', introTitle: '文字数の先まで、文章を見える化。', introBody: 'テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。', localBadge: '完全ローカル処理',
           inputTitle: 'テキスト', inputHint: '入力内容はこの端末のブラウザに自動保存されます。', placeholder: 'ここに文章を入力、または貼り付け…', noSelection: '選択範囲なし', selection: '選択: {chars}文字 / {words}単語', saved: '保存済み', copy: 'コピー', sample: 'サンプル', clear: 'クリア', undo: '元に戻す', redo: 'やり直す', historyGroup: '編集履歴', undoShortcut: '元に戻す (Ctrl/Cmd+Z)', redoShortcut: 'やり直す (Ctrl/Cmd+Shift+Z / Ctrl+Y)', cancel: 'キャンセル',
           summaryTitle: 'ひと目でわかる', summaryHint: '入力と同時に更新されます。', chars: '文字', words: '単語', sentences: '文', paragraphs: '段落', readTime: '読了目安', speechTime: '音読目安', target: '目標', targetNone: 'なし', custom: '自由入力', targetOff: '目標文字数なし', targetRemain: 'あと {count} 文字', targetOver: '{count} 文字オーバー', targetExact: '目標ぴったり', targetPercent: '{percent}%',
           tabOverview: '概要', tabComposition: '構成', tabFrequency: '頻出語', tabXray: 'X-Ray', tabChecks: '文章チェック', overviewTitle: '文章の基本情報', overviewDesc: 'カウント条件の違いもまとめて確認できます。', charsWithSpace: '文字数（空白込み）', charsNoSpace: '文字数（空白除外）', lines: '行数', avgSentence: '1文の平均', longestSentence: '最長の文', manuscript: '原稿用紙換算', uniqueWords: '異なる単語', topWord: '最多の単語', unitChars: '文字', sheetsApprox: '枚（約）', times: '{count}回',
@@ -1549,6 +1549,8 @@
         document.querySelectorAll('[data-i18n-title]').forEach((node) => { node.title = t(node.dataset.i18nTitle); });
         document.querySelectorAll('[data-i18n-aria-label]').forEach((node) => { node.setAttribute('aria-label', t(node.dataset.i18nAriaLabel)); });
         els.language.textContent = state.lang === 'ja' ? 'EN' : 'JA';
+        els.language.setAttribute('aria-label', state.lang === 'ja' ? 'Switch to English' : '日本語に切り替え');
+        els.language.title = state.lang === 'ja' ? 'Switch to English' : '日本語に切り替え';
         els.help.setAttribute('aria-label', t('helpTitle')); els.help.title = t('helpTitle'); els.helpClose.setAttribute('aria-label', state.lang === 'ja' ? '閉じる' : 'Close'); els.confirmClose.setAttribute('aria-label', state.lang === 'ja' ? '閉じる' : 'Close'); updateHistoryButtons();
         analyzeNow();
         saveSettings();
