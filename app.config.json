@@ -1,7 +1,7 @@
 {
   "name": "Text Inspector",
   "slug": "htmlapps-text-inspector",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "defaultLanguage": "ja",
   "release": {
     "readable": "dist/index.html",
