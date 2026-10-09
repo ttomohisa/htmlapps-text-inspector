@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3 - 2026-10-09
+
+- Normalized the app icon, embedded favicon, and responsive header background corners to exactly 25%, preserving the artwork and canonical #16624f color.
+- Added brand-asset and runtime parity regression checks.
+
 ## 1.0.2 - 2026-10-09
 
 - Added a genuine English screenshot from the v1.0.2 PR preview using the built-in sample.
