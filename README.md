@@ -209,3 +209,7 @@ Bug reports and feature proposals are welcome through GitHub Issues. See [AGENTS
 Copyright © 2026 ttomohisa
 
 Licensed under the [MIT License](LICENSE).
+
+## Catalog metadata
+
+`app.config.json` describes the existing standalone artifact and its network-blocking CSP. Metadata does not add runtime network permissions.
