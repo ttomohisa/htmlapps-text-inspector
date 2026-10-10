@@ -81,7 +81,7 @@
       color: #fff;
       box-shadow: var(--shadow-sm);
     }
-    .brand-mark svg { width: 21px; height: 21px; display: block; }
+    .brand-mark svg { width: 100%; height: 100%; display: block; }
     .brand-copy { min-width: 0; }
     .brand-name {
       margin: 0;
@@ -400,6 +400,12 @@
     .dialog-head { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
     .dialog-head h2 { margin: 0; font-size: 16px; }
     .dialog-body { padding: 16px; }
+    /* Keep the title out of the scroll area and bound Help to the visible viewport. */
+    #helpDialog { overflow: hidden; max-height: min(760px, calc(100vh - 32px)); max-height: min(760px, calc(100dvh - 32px)); }
+    #helpDialog[open] { display: flex; flex-direction: column; }
+    #helpDialog .dialog-head { position: static; flex: 0 0 auto; }
+    #helpDialog .dialog-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+    #helpBody:focus-visible { outline: 3px solid color-mix(in srgb, var(--focus) 55%, transparent); outline-offset: -3px; }
     .confirm-copy { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
     .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 16px 16px; }
     .button.confirm-danger { border-color: var(--danger); color: #fff; background: var(--danger); }
@@ -549,6 +555,13 @@
       .footer-line { display: block; }
       .footer-line span + span { display: block; margin-top: 4px; }
       dialog { margin: auto 14px 0; width: calc(100vw - 28px); max-height: min(80vh, 720px); border-radius: 18px 18px 0 0; }
+      #helpDialog {
+        inset: max(14px, env(safe-area-inset-top)) 14px auto;
+        margin: 0;
+        max-height: calc(100vh - max(14px, env(safe-area-inset-top)) - max(14px, env(safe-area-inset-bottom)));
+        max-height: calc(100dvh - max(14px, env(safe-area-inset-top)) - max(14px, env(safe-area-inset-bottom)));
+        border-radius: 18px;
+      }
       .confirm-actions { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
     }
     @media (max-width: 370px) {
@@ -567,7 +580,14 @@
     <div class="header-inner">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M5 6h14M5 10h10M5 14h12M5 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="17" r="3" stroke="currentColor" stroke-width="1.8"/><path d="m20.2 19.2 2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 38">
+            <rect width="38" height="38" rx="9.5" fill="#16624f"/>
+            <g transform="translate(8.5 8.5) scale(.875)" fill="none" stroke="#fff" stroke-linecap="round">
+              <path d="M5 6h14M5 10h10M5 14h12M5 18h7" stroke-width="2"/>
+              <circle cx="18" cy="17" r="3" stroke-width="1.8"/>
+              <path d="m20.2 19.2 2 2" stroke-width="1.8"/>
+            </g>
+          </svg>
         </div>
         <div class="brand-copy">
           <h1 class="brand-name">Text Inspector <span class="version-badge">v{{VERSION}}</span></h1>
@@ -590,7 +610,7 @@
         <p data-i18n="introBody">テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。</p>
       </div>
       <div class="local-badge">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6z"/><path d="m9 12 2 2 4-5"/></svg>
         <span data-i18n="localBadge">完全ローカル処理</span>
       </div>
     </section>
@@ -602,7 +622,7 @@
           <p data-i18n="inputHint">入力内容はこの端末のブラウザに自動保存されます。</p>
         </div>
       </div>
-      <textarea id="textInput" spellcheck="true" data-i18n-placeholder="placeholder" placeholder="ここに文章を入力、または貼り付け…" aria-label="分析するテキスト"></textarea>
+      <textarea id="textInput" spellcheck="true" data-i18n-placeholder="placeholder" placeholder="ここに文章を入力、または貼り付け…" aria-label="分析するテキスト" data-i18n-aria-label="inputLabel"></textarea>
       <div class="text-meta">
         <span class="selection-info" id="selectionInfo" data-i18n="noSelection">選択範囲なし</span>
         <span class="saved-indicator" id="savedIndicator" data-i18n="saved">保存済み</span>
@@ -610,6 +630,7 @@
       <div class="toolbar">
         <div class="button-row">
           <button class="button primary" type="button" id="copyButton"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="10" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M15 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8"/></svg><span data-i18n="copy">コピー</span></button>
+          <button class="button" type="button" id="downloadButton"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></svg><span data-i18n="download">TXT保存</span></button>
           <button class="button" type="button" id="sampleButton" data-i18n="sample">サンプル</button>
         </div>
         <div class="toolbar-actions">
@@ -644,7 +665,7 @@
         </div>
         <div class="target-controls">
           <label for="targetSelect" class="target-note" data-i18n="target">目標</label>
-          <select class="target-select" id="targetSelect" aria-label="目標文字数">
+          <select class="target-select" id="targetSelect" aria-label="目標文字数" data-i18n-aria-label="targetSelectLabel">
             <option value="0" data-i18n="targetNone">なし</option>
             <option value="140">140</option>
             <option value="400">400</option>
@@ -652,13 +673,13 @@
             <option value="1000">1,000</option>
             <option value="custom" data-i18n="custom">自由入力</option>
           </select>
-          <input class="target-input" id="targetInput" type="number" min="1" max="1000000" inputmode="numeric" value="400" hidden aria-label="自由入力の目標文字数">
+          <input class="target-input" id="targetInput" type="number" min="1" max="1000000" inputmode="numeric" value="400" hidden aria-label="自由入力の目標文字数" data-i18n-aria-label="targetInputLabel">
         </div>
       </div>
     </section>
 
-    <section class="analysis-shell" id="analysisSection" aria-label="文章分析">
-      <div class="tabs" role="tablist" aria-label="分析項目">
+    <section class="analysis-shell" id="analysisSection" aria-label="文章分析" data-i18n-aria-label="analysisRegionLabel">
+      <div class="tabs" role="tablist" aria-label="分析項目" data-i18n-aria-label="analysisTabsLabel">
         <button class="tab" role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" data-tab="overview" data-i18n="tabOverview">概要</button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-composition" id="tab-composition" data-tab="composition" data-i18n="tabComposition">構成</button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-frequency" id="tab-frequency" data-tab="frequency" data-i18n="tabFrequency">頻出語</button>
@@ -768,14 +789,15 @@
     </div>
   </dialog>
 
-  <dialog id="helpDialog">
+  <dialog id="helpDialog" aria-labelledby="helpTitle">
     <div class="dialog-head">
-      <h2 data-i18n="helpTitle">使い方と注意事項</h2>
+      <h2 id="helpTitle" data-i18n="helpTitle">使い方と注意事項</h2>
       <button type="button" class="icon-button" id="helpClose" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
-    <div class="dialog-body">
+    <div class="dialog-body" id="helpBody" tabindex="0" role="region" aria-labelledby="helpTitle">
       <!-- APP:HELP:BEGIN -->
       <section class="help-section"><h3 data-i18n="helpHowTitle">使い方</h3><ul><li data-i18n="helpHow1">テキスト欄に文章を入力・貼り付けすると、すぐに各指標を更新します。</li><li data-i18n="helpHow2">「頻出語」の単語を押すと、X-Ray 内の該当箇所を強調します。</li><li data-i18n="helpHow3">文章チェックの項目を押すと、X-Ray の該当箇所へ直接ジャンプします。</li><li data-i18n="helpHow4">目標文字数を設定すると、残り文字数または超過文字数を表示します。スマホでは固定バー上部のミニメーターでも常に確認できます。</li><li data-i18n="helpHow5">スマホの固定バーから入力・分析へ移動でき、元に戻す / やり直すも実行できます。キーボードショートカットにも対応し、サンプル・クリアは実行前に確認します。</li></ul></section>
+      <section class="help-section"><h3 data-i18n="download">TXT保存</h3><p data-i18n="helpDownload">「TXT保存」で入力した文章全体をUTF-8の text-inspector.txt として保存できます。改行・見えない文字・末尾の空白をそのまま含み、BOMや改行は追加しません。空欄の場合は空のファイルになります。</p></section>
       <section class="help-section"><h3 data-i18n="helpPrivacyTitle">プライバシー</h3><p data-i18n="helpPrivacy">入力した文章はサーバーへ送信しません。分析はすべてブラウザ内で行い、入力内容は復元用として localStorage に保存します。</p></section>
       <section class="help-section"><h3 data-i18n="helpNotesTitle">注意事項</h3><ul><li data-i18n="helpNotes1">単語分割、読了時間、文体判定は目安です。日本語の形態素解析を行う専用辞書は使用していません。</li><li data-i18n="helpNotes2">ブラウザのサイトデータを削除すると、自動保存した文章も消えます。重要な原稿の保管用途には使わないでください。</li><li data-i18n="helpNotes3">X-Ray の「長い文」は 80 文字超を機械的に示すもので、文章の良し悪しを断定するものではありません。</li></ul></section>
       <section class="help-section"><h3 data-i18n="invisibleTitle">見えない文字チェック</h3><p data-i18n="helpInvisible">ZWSP (U+200B)、NBSP (U+00A0)、NNBSP (U+202F)、WJ (U+2060)、BOM (U+FEFF) を種類・件数で確認できます。項目を押すと X-Ray の先頭の該当箇所へ移動します。「前へ」「次へ」で同じ種類の箇所を順に確認できます（現在位置 / 件数を表示、端で停止）。編集や履歴操作で移動状態はリセットします。マーカーは最大1,000件（選択した箇所を含む）。件数は分析範囲内の全件を数えます。</p><p data-i18n="invisibleNote">見えない文字には、改行制御や組版、ファイル先頭の BOM など意図した用途があります。絵文字や文字の結合に使う ZWJ / ZWNJ は対象外です。</p><p data-i18n="invisibleXrayNote">[ZWSP] などの表示は X-Ray 専用です。入力とコピーする原文は変わりません。</p></section>
@@ -786,7 +808,7 @@
   <div class="app-toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
     <span class="app-toast-message" id="toastMessage"></span>
     <button class="toast-action" type="button" id="toastAction" hidden data-i18n="undo">元に戻す</button>
-    <button class="toast-close" type="button" id="toastClose" aria-label="閉じる">×</button>
+    <button class="toast-close" type="button" id="toastClose" aria-label="閉じる" data-i18n-aria-label="closeLabel">×</button>
   </div>
 
   <script>
@@ -811,6 +833,8 @@
 
       const translations = {
         ja: {
+          inputLabel: '分析するテキスト', targetSelectLabel: '目標文字数', targetInputLabel: '自由入力の目標文字数', analysisRegionLabel: '文章分析', analysisTabsLabel: '分析項目', closeLabel: '閉じる',
+          download: 'TXT保存', downloadStarted: 'ダウンロードを開始しました', downloadFailed: 'ダウンロードを開始できませんでした', helpDownload: '「TXT保存」で入力した文章全体をUTF-8の text-inspector.txt として保存できます。改行・見えない文字・末尾の空白をそのまま含み、BOMや改行は追加しません。空欄の場合は空のファイルになります。',
           brandMeta: '文章を数える、測る、見つける', introTitle: '文字数の先まで、文章を見える化。', introBody: 'テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。', localBadge: '完全ローカル処理',
           inputTitle: 'テキスト', inputHint: '入力内容はこの端末のブラウザに自動保存されます。', placeholder: 'ここに文章を入力、または貼り付け…', noSelection: '選択範囲なし', selection: '選択: {chars}文字 / {words}単語', saved: '保存済み', copy: 'コピー', sample: 'サンプル', clear: 'クリア', undo: '元に戻す', redo: 'やり直す', historyGroup: '編集履歴', undoShortcut: '元に戻す (Ctrl/Cmd+Z)', redoShortcut: 'やり直す (Ctrl/Cmd+Shift+Z / Ctrl+Y)', cancel: 'キャンセル',
           summaryTitle: 'ひと目でわかる', summaryHint: '入力と同時に更新されます。', chars: '文字', words: '単語', sentences: '文', paragraphs: '段落', readTime: '読了目安', speechTime: '音読目安', target: '目標', targetNone: 'なし', custom: '自由入力', targetOff: '目標文字数なし', targetRemain: 'あと {count} 文字', targetOver: '{count} 文字オーバー', targetExact: '目標ぴったり', targetPercent: '{percent}%',
@@ -824,6 +848,8 @@
           confirmSampleTitle: 'サンプルを読み込みますか？', confirmSampleMessage: '現在の文章をサンプル文章に置き換えます。あとから「元に戻す」で復元できます。', confirmSampleAction: 'サンプルを読み込む', confirmClearTitle: '文章をクリアしますか？', confirmClearMessage: '入力中の文章を空にします。あとから「元に戻す」で復元できます。', confirmClearAction: 'クリアする', redoDone: 'やり直しました', undoDone: '元に戻しました', copied: 'コピーしました', copyFailed: 'コピーできませんでした', cleared: '文章をクリアしました', sampleLoaded: 'サンプルを読み込みました', restored: '元に戻しました', analysisLimited: '20万 UTF-16 コード単位を超えたため、頻出語・X-Ray・文章チェック（見えない文字の件数を含む）は先頭20万単位のみを分析しています。'
         },
         en: {
+          inputLabel: 'Text to analyze', targetSelectLabel: 'Target character count', targetInputLabel: 'Custom target character count', analysisRegionLabel: 'Text analysis', analysisTabsLabel: 'Analysis views', closeLabel: 'Close',
+          download: 'Save .txt', downloadStarted: 'Download started', downloadFailed: 'Could not start download', helpDownload: 'Save .txt downloads the entire input as UTF-8 text-inspector.txt. It preserves line breaks, invisible characters and trailing whitespace, without adding a BOM or newline. Empty input creates an empty file.',
           brandMeta: 'Count, measure, and inspect your writing', introTitle: 'See beyond the character count.', introBody: 'Paste text to inspect counts, reading time, character mix, frequent words, long sentences, and writing-style tendencies in real time.', localBadge: 'Processed only in your browser',
           inputTitle: 'Text', inputHint: 'Your input is autosaved in this browser on this device.', placeholder: 'Type or paste text here…', noSelection: 'No text selected', selection: 'Selection: {chars} chars / {words} words', saved: 'Saved', copy: 'Copy', sample: 'Sample', clear: 'Clear', undo: 'Undo', redo: 'Redo', historyGroup: 'Edit history', undoShortcut: 'Undo (Ctrl/Cmd+Z)', redoShortcut: 'Redo (Ctrl/Cmd+Shift+Z / Ctrl+Y)', cancel: 'Cancel',
           summaryTitle: 'At a glance', summaryHint: 'Updates while you type.', chars: 'Characters', words: 'Words', sentences: 'Sentences', paragraphs: 'Paragraphs', readTime: 'Read time', speechTime: 'Read aloud', target: 'Target', targetNone: 'None', custom: 'Custom', targetOff: 'No character target', targetRemain: '{count} characters left', targetOver: '{count} over target', targetExact: 'Target reached exactly', targetPercent: '{percent}%',
@@ -844,8 +870,8 @@
       const state = { lang: 'ja', target: 0, selectedWord: '', focusRange: null, invisibleNavigation: null, undo: null, saveTimer: null, analysisTimer: null, historyTimer: null, history: [], historyIndex: -1, applyingHistory: false, confirmResolver: null };
       const $ = (id) => document.getElementById(id);
       const els = {
-        input: $('textInput'), language: $('languageButton'), help: $('helpButton'), helpDialog: $('helpDialog'), helpClose: $('helpClose'),
-        copy: $('copyButton'), sample: $('sampleButton'), clear: $('clearButton'), undoButton: $('undoButton'), redoButton: $('redoButton'), selection: $('selectionInfo'), saved: $('savedIndicator'),
+        input: $('textInput'), language: $('languageButton'), help: $('helpButton'), helpDialog: $('helpDialog'), helpBody: $('helpBody'), helpClose: $('helpClose'),
+        copy: $('copyButton'), download: $('downloadButton'), sample: $('sampleButton'), clear: $('clearButton'), undoButton: $('undoButton'), redoButton: $('redoButton'), selection: $('selectionInfo'), saved: $('savedIndicator'),
         charCount: $('charCount'), wordCount: $('wordCount'), sentenceCount: $('sentenceCount'), paragraphCount: $('paragraphCount'), readingTime: $('readingTime'), speechTime: $('speechTime'),
         targetSelect: $('targetSelect'), targetInput: $('targetInput'), targetResult: $('targetResult'), targetPercent: $('targetPercent'), targetProgress: $('targetProgress'),
         mChars: $('mChars'), mCharsNoSpace: $('mCharsNoSpace'), mLines: $('mLines'), mAvgSentence: $('mAvgSentence'), mLongest: $('mLongest'), mManuscript: $('mManuscript'), mUnique: $('mUnique'), mTopWord: $('mTopWord'), mTopWordCount: $('mTopWordCount'),
@@ -1402,6 +1428,24 @@
         } catch (_) { showToast(t('copyFailed')); }
       }
 
+      function downloadText() {
+        let url, link;
+        try {
+          const blob = new Blob([els.input.value], { type: 'text/plain;charset=utf-8' });
+          url = URL.createObjectURL(blob);
+          link = document.createElement('a');
+          link.href = url; link.download = 'text-inspector.txt';
+          document.body.appendChild(link);
+          link.click();
+          showToast(t('downloadStarted'));
+        } catch (_) { showToast(t('downloadFailed')); }
+        finally {
+          if (link) link.remove();
+          // Leave time for the browser to consume the URL before releasing it.
+          if (url) window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+      }
+
       function updateHistoryButtons() {
         const canUndo = state.historyIndex > 0;
         const canRedo = state.historyIndex >= 0 && state.historyIndex < state.history.length - 1;
@@ -1577,12 +1621,13 @@
       ['select', 'keyup', 'mouseup', 'touchend'].forEach((event) => els.input.addEventListener(event, updateSelection));
       els.input.addEventListener('blur', flushHistory);
       els.copy.addEventListener('click', copyText);
+      els.download.addEventListener('click', downloadText);
       els.sample.addEventListener('click', () => confirmAndReplace('sample'));
       els.clear.addEventListener('click', () => confirmAndReplace('clear'));
       els.undoButton.addEventListener('click', undoText);
       els.redoButton.addEventListener('click', redoText);
       els.language.addEventListener('click', () => { state.lang = state.lang === 'ja' ? 'en' : 'ja'; applyLanguage(); });
-      els.help.addEventListener('click', () => els.helpDialog.showModal());
+      els.help.addEventListener('click', () => { els.helpDialog.showModal(); els.helpBody.scrollTop = 0; });
       els.helpClose.addEventListener('click', () => els.helpDialog.close());
       els.helpDialog.addEventListener('click', (event) => { if (event.target === els.helpDialog) els.helpDialog.close(); });
       els.confirmClose.addEventListener('click', () => finishConfirm(false));

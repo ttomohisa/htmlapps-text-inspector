@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.4 - 2026-10-10
+
+- Localized the remaining editor, target-count, analysis-region/tab-list and toast-dismiss accessible labels in Japanese and English.
+- Added local UTF-8 `.txt` downloads of the full current input, including empty text, without adding a BOM/newline or altering invisible characters. Download cleanup and failure feedback are covered by regression tests.
+
+- Positioned smartphone Help near the top with safe-area-aware visible margins and dynamic viewport bounds, keeping its title and Close button outside the scrolling body.
+- Reset Help to the first instructions on every open, including after reading to the end and changing language.
+- Reused the complete canonical `assets/favicon.svg` artwork in the responsive header; the embedded favicon already matched the asset.
+- Replaced the local-processing lock with the shield/check artwork used by PDF Fill & Sign.
+- Added help lifecycle, icon-parity and native-browser viewport regressions, and rebuilt both one-file releases and the root download.
+
 ## 1.0.3 - 2026-10-09
 
 - Normalized the app icon, embedded favicon, and responsive header background corners to exactly 25%, preserving the artwork and canonical #16624f color.

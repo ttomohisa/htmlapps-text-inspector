@@ -119,6 +119,8 @@ If Pages has not been enabled yet, the deployment workflow still completes the b
 
 ## Privacy and runtime network protection
 
+Use **Save .txt** beside Copy to download the full current input as UTF-8 `text-inspector.txt`. It preserves line breaks, invisible characters and trailing whitespace without adding a BOM or newline, even when analysis is limited to a prefix. Empty input creates a zero-byte file. This is a local browser download; it does not change the editor or upload text. Keep a downloaded copy of important writing independently of browser autosave.
+
 The entered text is analyzed entirely in the browser.
 
 - No text is uploaded by the app.
@@ -180,6 +182,10 @@ This command requires **Node.js 20 or later** for development verification. It r
 The Node tests use a small DOM adapter and do not prove native keyboard, selection, scrolling, or visual behavior. To run the behavior suite against a generated readable file, set `TEXT_INSPECTOR_HTML` to its path before `node --test`; the self-extract payload is separately checked for byte-exact restoration.
 
 For real-browser regression checks, install the development-only Python Playwright package and Chromium (`python -m pip install playwright`, then `python -m playwright install chromium`), rebuild, and run `python tests/test-invisible-browser.py`. Set `CHROMIUM_PATH` to use an already installed Chromium binary. The script opens both generated files directly with the browser offline, tests Japanese/English at desktop/320px widths, and checks keyboard jumps, safe rendering, copy, limits, edit/history/cancel flows, and absence of runtime requests. These browser tests are separate from the Node/build gate and require an environment that allows launching a browser.
+
+Run `python tests/test-help-browser.py` for Help-specific checks against both offline releases in Japanese and English, including 320px/390px portrait, short landscape and desktop viewports. It covers visible dialog margins, an independently scrolling body, a stable Close button, reset on reopen, Close/Escape/backdrop dismissal, focus return and open-dialog resizing. The header and favicon use the unchanged canonical `assets/favicon.svg`; the local-processing badge uses the shared PDF Fill & Sign shield/check.
+
+Run `python tests/test-download-browser.py` to verify Japanese/English accessible labels, narrow toolbar layout and real UTF-8 downloads (including empty files) against both offline releases. Like the other browser tests, it requires a browser-enabled development environment and is separate from the Node/build gate.
 
 ## Supported browsers and devices
 

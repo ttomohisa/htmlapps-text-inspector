@@ -36,9 +36,11 @@
 - Selected-range character and word count.
 - Smartphone-only fixed bottom bar adapted from the template component. Its compact meter shows current character count, target remaining/over state, and target progress (or word count with no target); tapping the meter opens the full summary. The action row provides Input / Analysis navigation plus Undo / Redo.
 - Copy and Sample/Clear actions. Sample and Clear require an in-app confirmation dialog before replacement.
+- Save .txt downloads the current full editor value as a local UTF-8 `text-inspector.txt`, preserving line breaks, invisible characters and trailing whitespace without adding a BOM or newline. Empty input creates a zero-byte file. Downloads do not depend on the analyzed prefix or send text to a server.
 - Persistent Undo / Redo controls with a bounded text-history (up to 50 snapshots and approximately 4 million UTF-16 code units), plus Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, and Ctrl+Y shortcuts.
 - Clear/Sample completion also exposes Undo in the status toast.
 - Japanese/English UI in the same HTML.
+- Accessible labels for the editor, target controls, analysis region/tab list and dismiss controls follow the active UI language, including after repeated language changes.
 - Light-only interface; no dark-mode switch.
 - Input autosave and UI setting persistence in localStorage.
 
@@ -80,8 +82,10 @@ Current stable Chromium, Firefox, and Safari on desktop and mobile. Direct `file
 - The analysis tab row stays in normal flow on smartphones and must not create a blank offset inside the analysis card.
 - Target count reports remaining, exact, or over-target state.
 - Help accurately documents privacy, limitations, and localStorage risk.
+- Smartphone Help starts near the top with safe-area-aware margins within the dynamic viewport. Only its body scrolls; the title and Close button remain visible, and each open starts at the first instructions.
 - Invisible-character jumps work with mouse, Enter, and Space and move keyboard focus into X-Ray. Markers can overlap existing sentence/word highlights without treating source text as HTML.
 - Previous / Next are native buttons with Japanese/English accessible names and a polite position status. Navigation preserves original Copy, selection, history and storage.
 - Regression tests cover full-app input debounce, stale check/frequency actions, occurrence endpoints/type changes, language/history transitions, Unicode offsets, whitespace-only inputs, marker/analysis limits, safe rendering, unchanged copy, cancellation and history. Repository verification runs them with Node.js 20 or later after rebuilding the releases.
 
 - Brand icon backgrounds use #16624f and a corner radius of exactly 25% of each background axis; the asset, embedded favicon, and responsive header remain consistent.
+- The header embeds the complete canonical `assets/favicon.svg` artwork and scales it uniformly. The local-processing badge uses the shared shield/check artwork from PDF Fill & Sign.
