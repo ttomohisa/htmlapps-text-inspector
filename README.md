@@ -181,6 +181,8 @@ The Node tests use a small DOM adapter and do not prove native keyboard, selecti
 
 For real-browser regression checks, install the development-only Python Playwright package and Chromium (`python -m pip install playwright`, then `python -m playwright install chromium`), rebuild, and run `python tests/test-invisible-browser.py`. Set `CHROMIUM_PATH` to use an already installed Chromium binary. The script opens both generated files directly with the browser offline, tests Japanese/English at desktop/320px widths, and checks keyboard jumps, safe rendering, copy, limits, edit/history/cancel flows, and absence of runtime requests. These browser tests are separate from the Node/build gate and require an environment that allows launching a browser.
 
+Run `python tests/test-help-browser.py` for Help-specific checks against both offline releases in Japanese and English, including 320px/390px portrait, short landscape and desktop viewports. It covers visible dialog margins, an independently scrolling body, a stable Close button, reset on reopen, Close/Escape/backdrop dismissal, focus return and open-dialog resizing. The header and favicon use the unchanged canonical `assets/favicon.svg`; the local-processing badge uses the shared PDF Fill & Sign shield/check.
+
 ## Supported browsers and devices
 
 Current desktop and mobile versions of Chromium-based browsers, Firefox, and Safari are the primary targets. The interface is designed for both desktop and smartphone layouts, including safe-area-aware fixed controls on mobile.

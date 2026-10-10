@@ -181,6 +181,8 @@ Nodeテストは小さなDOMアダプターによる検証で、実ブラウザ�
 
 実ブラウザの回帰テストは、開発用Python PlaywrightとChromiumをインストール（`python -m pip install playwright`、`python -m playwright install chromium`）してから、ビルド後に `python tests/test-invisible-browser.py` で実行できます。既存のChromiumを使う場合は `CHROMIUM_PATH` を指定します。両生成HTMLをネットワーク無効で直接開き、日英・デスクトップ/320px・キーボード移動・安全な表示・コピー・件数上限・編集/履歴/キャンセル・実行時通信の有無を確認します。このテストはNode/ビルド検証とは別で、ブラウザを起動できる環境が必要です。
 
+`python tests/test-help-browser.py` では両配布HTMLをオフラインで開き、日英・320px/390px縦画面・短い横画面・デスクトップでヘルプを検証します。画面内の余白、本文だけのスクロール、閉じるボタンの固定、再表示時の先頭復帰、閉じる/Escape/背景クリック、フォーカス復帰、表示中の画面サイズ変更が対象です。ヘッダーとfaviconは既存の `assets/favicon.svg` を共通の図柄として使用し、ローカル処理バッジはPDF記入・署名と同じ盾・チェックのアイコンを使用します。
+
 ## 対応ブラウザ・端末
 
 現在のChromium系ブラウザ、Firefox、Safariのデスクトップ版・モバイル版を主な対象としています。PCとスマートフォンの両方を前提にし、スマートフォンではSafe Areaを考慮した固定操作バーを表示します。

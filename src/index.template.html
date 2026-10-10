@@ -81,7 +81,7 @@
       color: #fff;
       box-shadow: var(--shadow-sm);
     }
-    .brand-mark svg { width: 21px; height: 21px; display: block; }
+    .brand-mark svg { width: 100%; height: 100%; display: block; }
     .brand-copy { min-width: 0; }
     .brand-name {
       margin: 0;
@@ -400,6 +400,12 @@
     .dialog-head { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
     .dialog-head h2 { margin: 0; font-size: 16px; }
     .dialog-body { padding: 16px; }
+    /* Keep the title out of the scroll area and bound Help to the visible viewport. */
+    #helpDialog { overflow: hidden; max-height: min(760px, calc(100vh - 32px)); max-height: min(760px, calc(100dvh - 32px)); }
+    #helpDialog[open] { display: flex; flex-direction: column; }
+    #helpDialog .dialog-head { position: static; flex: 0 0 auto; }
+    #helpDialog .dialog-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+    #helpBody:focus-visible { outline: 3px solid color-mix(in srgb, var(--focus) 55%, transparent); outline-offset: -3px; }
     .confirm-copy { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
     .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 16px 16px; }
     .button.confirm-danger { border-color: var(--danger); color: #fff; background: var(--danger); }
@@ -549,6 +555,13 @@
       .footer-line { display: block; }
       .footer-line span + span { display: block; margin-top: 4px; }
       dialog { margin: auto 14px 0; width: calc(100vw - 28px); max-height: min(80vh, 720px); border-radius: 18px 18px 0 0; }
+      #helpDialog {
+        inset: max(14px, env(safe-area-inset-top)) 14px auto;
+        margin: 0;
+        max-height: calc(100vh - max(14px, env(safe-area-inset-top)) - max(14px, env(safe-area-inset-bottom)));
+        max-height: calc(100dvh - max(14px, env(safe-area-inset-top)) - max(14px, env(safe-area-inset-bottom)));
+        border-radius: 18px;
+      }
       .confirm-actions { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
     }
     @media (max-width: 370px) {
@@ -567,7 +580,14 @@
     <div class="header-inner">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M5 6h14M5 10h10M5 14h12M5 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="17" r="3" stroke="currentColor" stroke-width="1.8"/><path d="m20.2 19.2 2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 38">
+            <rect width="38" height="38" rx="9.5" fill="#16624f"/>
+            <g transform="translate(8.5 8.5) scale(.875)" fill="none" stroke="#fff" stroke-linecap="round">
+              <path d="M5 6h14M5 10h10M5 14h12M5 18h7" stroke-width="2"/>
+              <circle cx="18" cy="17" r="3" stroke-width="1.8"/>
+              <path d="m20.2 19.2 2 2" stroke-width="1.8"/>
+            </g>
+          </svg>
         </div>
         <div class="brand-copy">
           <h1 class="brand-name">Text Inspector <span class="version-badge">v{{VERSION}}</span></h1>
@@ -590,7 +610,7 @@
         <p data-i18n="introBody">テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。</p>
       </div>
       <div class="local-badge">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6z"/><path d="m9 12 2 2 4-5"/></svg>
         <span data-i18n="localBadge">完全ローカル処理</span>
       </div>
     </section>
@@ -768,12 +788,12 @@
     </div>
   </dialog>
 
-  <dialog id="helpDialog">
+  <dialog id="helpDialog" aria-labelledby="helpTitle">
     <div class="dialog-head">
-      <h2 data-i18n="helpTitle">使い方と注意事項</h2>
+      <h2 id="helpTitle" data-i18n="helpTitle">使い方と注意事項</h2>
       <button type="button" class="icon-button" id="helpClose" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
     </div>
-    <div class="dialog-body">
+    <div class="dialog-body" id="helpBody" tabindex="0" role="region" aria-labelledby="helpTitle">
       <!-- APP:HELP:BEGIN -->
       <section class="help-section"><h3 data-i18n="helpHowTitle">使い方</h3><ul><li data-i18n="helpHow1">テキスト欄に文章を入力・貼り付けすると、すぐに各指標を更新します。</li><li data-i18n="helpHow2">「頻出語」の単語を押すと、X-Ray 内の該当箇所を強調します。</li><li data-i18n="helpHow3">文章チェックの項目を押すと、X-Ray の該当箇所へ直接ジャンプします。</li><li data-i18n="helpHow4">目標文字数を設定すると、残り文字数または超過文字数を表示します。スマホでは固定バー上部のミニメーターでも常に確認できます。</li><li data-i18n="helpHow5">スマホの固定バーから入力・分析へ移動でき、元に戻す / やり直すも実行できます。キーボードショートカットにも対応し、サンプル・クリアは実行前に確認します。</li></ul></section>
       <section class="help-section"><h3 data-i18n="helpPrivacyTitle">プライバシー</h3><p data-i18n="helpPrivacy">入力した文章はサーバーへ送信しません。分析はすべてブラウザ内で行い、入力内容は復元用として localStorage に保存します。</p></section>
@@ -844,7 +864,7 @@
       const state = { lang: 'ja', target: 0, selectedWord: '', focusRange: null, invisibleNavigation: null, undo: null, saveTimer: null, analysisTimer: null, historyTimer: null, history: [], historyIndex: -1, applyingHistory: false, confirmResolver: null };
       const $ = (id) => document.getElementById(id);
       const els = {
-        input: $('textInput'), language: $('languageButton'), help: $('helpButton'), helpDialog: $('helpDialog'), helpClose: $('helpClose'),
+        input: $('textInput'), language: $('languageButton'), help: $('helpButton'), helpDialog: $('helpDialog'), helpBody: $('helpBody'), helpClose: $('helpClose'),
         copy: $('copyButton'), sample: $('sampleButton'), clear: $('clearButton'), undoButton: $('undoButton'), redoButton: $('redoButton'), selection: $('selectionInfo'), saved: $('savedIndicator'),
         charCount: $('charCount'), wordCount: $('wordCount'), sentenceCount: $('sentenceCount'), paragraphCount: $('paragraphCount'), readingTime: $('readingTime'), speechTime: $('speechTime'),
         targetSelect: $('targetSelect'), targetInput: $('targetInput'), targetResult: $('targetResult'), targetPercent: $('targetPercent'), targetProgress: $('targetProgress'),
@@ -1582,7 +1602,7 @@
       els.undoButton.addEventListener('click', undoText);
       els.redoButton.addEventListener('click', redoText);
       els.language.addEventListener('click', () => { state.lang = state.lang === 'ja' ? 'en' : 'ja'; applyLanguage(); });
-      els.help.addEventListener('click', () => els.helpDialog.showModal());
+      els.help.addEventListener('click', () => { els.helpDialog.showModal(); els.helpBody.scrollTop = 0; });
       els.helpClose.addEventListener('click', () => els.helpDialog.close());
       els.helpDialog.addEventListener('click', (event) => { if (event.target === els.helpDialog) els.helpDialog.close(); });
       els.confirmClose.addEventListener('click', () => finishConfirm(false));

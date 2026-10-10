@@ -21,3 +21,21 @@ test('brand asset, embedded favicon and responsive header use the canonical colo
     assert.match(html, /--accent:\s*#16624f;/);
   }
 });
+
+test('header renders the complete canonical asset rather than a separately scaled glyph', () => {
+  const asset = compact(read('assets/favicon.svg'));
+  const html = read('src/index.template.html');
+  const header = html.match(/<div class="brand-mark"[^>]*>\s*(<svg[\s\S]*?<\/svg>)/);
+  assert.ok(header, 'inline header icon');
+  assert.equal(compact(header[1]), asset, 'header artwork matches assets/favicon.svg');
+  assert.match(html, /\.brand-mark svg\s*\{[^}]*width:\s*100%;[^}]*height:\s*100%;/);
+});
+
+test('local-processing badge uses the PDF Fill & Sign shield artwork', () => {
+  const html = read('src/index.template.html');
+  const badge = html.match(/<div class="local-badge">\s*(<svg[\s\S]*?<\/svg>)/);
+  assert.ok(badge, 'inline local-processing badge');
+  assert.match(badge[1], /d="M12 3 5 6v5c0 4\.6 2\.8 8 7 10 4\.2-2 7-5\.4 7-10V6z"/);
+  assert.match(badge[1], /d="m9 12 2 2 4-5"/);
+  assert.match(badge[1], /aria-hidden="true"/);
+});
