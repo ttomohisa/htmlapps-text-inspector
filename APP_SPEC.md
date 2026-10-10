@@ -36,9 +36,11 @@
 - Selected-range character and word count.
 - Smartphone-only fixed bottom bar adapted from the template component. Its compact meter shows current character count, target remaining/over state, and target progress (or word count with no target); tapping the meter opens the full summary. The action row provides Input / Analysis navigation plus Undo / Redo.
 - Copy and Sample/Clear actions. Sample and Clear require an in-app confirmation dialog before replacement.
+- Save .txt downloads the current full editor value as a local UTF-8 `text-inspector.txt`, preserving line breaks, invisible characters and trailing whitespace without adding a BOM or newline. Empty input creates a zero-byte file. Downloads do not depend on the analyzed prefix or send text to a server.
 - Persistent Undo / Redo controls with a bounded text-history (up to 50 snapshots and approximately 4 million UTF-16 code units), plus Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, and Ctrl+Y shortcuts.
 - Clear/Sample completion also exposes Undo in the status toast.
 - Japanese/English UI in the same HTML.
+- Accessible labels for the editor, target controls, analysis region/tab list and dismiss controls follow the active UI language, including after repeated language changes.
 - Light-only interface; no dark-mode switch.
 - Input autosave and UI setting persistence in localStorage.
 

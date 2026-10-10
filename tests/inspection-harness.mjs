@@ -9,6 +9,8 @@ export function harness({ text = '', markerLimit, analysisLimit } = {}) {
   const frames = [];
   const timers = new Map();
   const storage = new Map([['browser-kitty:text-inspector:v1', text], ['browser-kitty:text-inspector:settings:v1', '{"lang":"en"}']]);
+  const downloads = [], blobUrls = new Map(), revokedUrls = [];
+  let urlId = 0;
   let now = 0;
   let timerId = 0;
   let document;
@@ -20,14 +22,19 @@ export function harness({ text = '', markerLimit, analysisLimit } = {}) {
     set textContent(value) { this.text = String(value); this.replaceChildren(); }
     get textContent() { return (this.text || '') + this.children.map(n => n.textContent).join(''); }
     set innerHTML(value) { this.html = value; }
-    append(...nodes) { this.children.push(...nodes); }
+    append(...nodes) { this.children.push(...nodes); nodes.forEach(node => { node.parentNode = this; }); }
     appendChild(node) { this.append(node); return node; }
+    remove() { if (this.parentNode) this.parentNode.children = this.parentNode.children.filter(node => node !== this); this.parentNode = null; this.isConnected = false; }
     replaceChildren(...nodes) { this.children.forEach(n => n.isConnected = false); this.children = nodes; }
     setAttribute(key, value) { this.attrs[key] = String(value); }
     removeAttribute(key) { delete this.attrs[key]; }
     addEventListener(event, fn) { (this.events[event] ||= []).push(fn); }
     dispatch(event, data = {}) { for (const fn of this.events[event] || []) fn({ target: this, preventDefault() {}, ...data }); }
-    click() { if (!this.disabled) this.dispatch('click'); }
+    click() {
+      if (this.disabled) return;
+      if (this.tag === 'a' && this.download) downloads.push({ filename: this.download, blob: blobUrls.get(this.href), url: this.href, connected: !!this.parentNode });
+      this.dispatch('click');
+    }
     focus() { document.activeElement = this; this.focused = true; }
     scrollIntoView() { this.scrolled = true; }
     showModal() { this.open = true; }
@@ -36,20 +43,21 @@ export function harness({ text = '', markerLimit, analysisLimit } = {}) {
     matches(selector) { return ['input', 'textarea'].includes(this.tag) && selector.includes(this.tag); }
     select() { this.selectionStart = 0; this.selectionEnd = this.value.length; }
   }
-  const nodes = [...html.matchAll(/<([a-z][\w-]*)\b([^>]*\bid="([^"]+)"[^>]*)>/gi)].map(([, tag, attrs, id]) => {
-    const node = new Node(tag); node.id = id;
+  const nodes = [...html.matchAll(/<([a-z][\w-]*)\b([^>]*)>/gi)].map(([, tag, attrs]) => {
+    const node = new Node(tag);
     for (const [, key, value] of attrs.matchAll(/([\w-]+)="([^"]*)"/g)) {
       node.setAttribute(key, value);
+      if (key === 'id') node.id = value;
       if (key === 'class') node.className = value;
       if (key.startsWith('data-')) node.dataset[key.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = value;
     }
     node.hidden = /\shidden\b/.test(attrs); node.disabled = /\sdisabled\b/.test(attrs);
     return node;
   });
-  const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const byId = Object.fromEntries(nodes.filter(n => n.id).map(n => [n.id, n]));
   const tabs = new Node();
   document = {
-    documentElement: {}, activeElement: null,
+    documentElement: {}, activeElement: null, body: new Node('body'),
     getElementById: id => byId[id], createElement: tag => new Node(tag),
     createTextNode: text => Object.assign(new Node(), { text }),
     querySelector: () => tabs,
@@ -58,6 +66,8 @@ export function harness({ text = '', markerLimit, analysisLimit } = {}) {
   };
   byId.targetSelect.value = '0';
   const context = {
+    Blob,
+    URL: { createObjectURL: blob => { const url = `blob:test-${++urlId}`; blobUrls.set(url, blob); return url; }, revokeObjectURL: url => { revokedUrls.push(url); blobUrls.delete(url); } },
     document, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
     window: {
       isSecureContext: true, matchMedia: () => ({ matches: true }), requestAnimationFrame: fn => frames.push(fn),
@@ -72,7 +82,7 @@ export function harness({ text = '', markerLimit, analysisLimit } = {}) {
   script = script.replace('    })();', '      globalThis.api = { state, els, buildAnalysis, renderChecks, renderXray, renderFrequency, analyzeNow, copyText, undoText, redoText };\n    })();');
   vm.runInNewContext(script, context);
   return {
-    ...context.api, context, document, storage,
+    ...context.api, context, document, storage, downloads, blobUrls, revokedUrls,
     edit(value) { context.api.els.input.value = value; context.api.els.input.dispatch('input'); },
     advance(ms) {
       const until = now + ms;

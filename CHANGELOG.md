@@ -2,6 +2,9 @@
 
 ## 1.0.4 - 2026-10-10
 
+- Localized the remaining editor, target-count, analysis-region/tab-list and toast-dismiss accessible labels in Japanese and English.
+- Added local UTF-8 `.txt` downloads of the full current input, including empty text, without adding a BOM/newline or altering invisible characters. Download cleanup and failure feedback are covered by regression tests.
+
 - Positioned smartphone Help near the top with safe-area-aware visible margins and dynamic viewport bounds, keeping its title and Close button outside the scrolling body.
 - Reset Help to the first instructions on every open, including after reading to the end and changing language.
 - Reused the complete canonical `assets/favicon.svg` artwork in the responsive header; the embedded favicon already matched the asset.
