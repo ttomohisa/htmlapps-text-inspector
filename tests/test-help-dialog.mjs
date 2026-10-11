@@ -1,6 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { harness } from './inspection-harness.mjs';
+import { harness, html } from './inspection-harness.mjs';
+
+// Source/readable structure only; native outside-wheel and close paths need browser QA.
+for (const element of ['html', 'body']) {
+  test(`${element} locks background scrolling while a native modal is active`, () => {
+    const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+    const selector = `${element}:has(dialog:modal)`;
+    const rule = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .find(([, selectors]) => selectors.split(',').some(value => value.trim() === selector));
+    assert.ok(rule, `${selector} must follow native modal state`);
+    assert.match(rule[2], /(?:^|;)\s*overflow\s*:\s*hidden\s*(?:;|$)/);
+  });
+}
 
 test('help reading area is labeled and explicitly keyboard-focusable across browsers', () => {
   const h = harness();

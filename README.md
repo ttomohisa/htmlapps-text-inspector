@@ -56,6 +56,8 @@ After you have the HTML file, no local web server or internet connection is requ
 6. Set a character target such as 140, 400, 800, or a custom value to see the remaining or exceeded count.
 7. Select part of the editor text when you only want counts for that range.
 
+Help and confirmation dialogs keep the background page still while open. Long Help content scrolls inside its existing reading area; closing the dialog restores normal page scrolling.
+
 ### Smartphone controls
 
 On narrow screens, a fixed bottom bar keeps the most useful information and actions within reach:
