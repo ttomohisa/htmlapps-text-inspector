@@ -83,6 +83,7 @@ Current stable Chromium, Firefox, and Safari on desktop and mobile. Direct `file
 - Target count reports remaining, exact, or over-target state.
 - Help accurately documents privacy, limitations, and localStorage risk.
 - Smartphone Help starts near the top with safe-area-aware margins within the dynamic viewport. Only its body scrolls; the title and Close button remain visible, and each open starts at the first instructions.
+- While Help or a confirmation dialog is open, outside-wheel scrolling must not move the background page. Keep existing inner dialog scrolling and native close behavior; closing the last modal restores normal page scrolling.
 - Invisible-character jumps work with mouse, Enter, and Space and move keyboard focus into X-Ray. Markers can overlap existing sentence/word highlights without treating source text as HTML.
 - Previous / Next are native buttons with Japanese/English accessible names and a polite position status. Navigation preserves original Copy, selection, history and storage.
 - Regression tests cover full-app input debounce, stale check/frequency actions, occurrence endpoints/type changes, language/history transitions, Unicode offsets, whitespace-only inputs, marker/analysis limits, safe rendering, unchanged copy, cancellation and history. Repository verification runs them with Node.js 20 or later after rebuilding the releases.

@@ -27,6 +27,17 @@ test('self-extract payload restores the exact readable release', () => {
   assert.equal(gunzipSync(Buffer.from(payload, 'base64')).toString('utf8'), readable);
 });
 
+test('readable release includes the native modal root and body scroll lock', () => {
+  const css = readable.match(/<style>([\s\S]*?)<\/style>/)[1];
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+  for (const element of ['html', 'body']) {
+    const selector = `${element}:has(dialog:modal)`;
+    const rule = rules.find(([, selectors]) => selectors.split(',').some(value => value.trim() === selector));
+    assert.ok(rule, `${selector} must be present in the generated release`);
+    assert.match(rule[2], /(?:^|;)\s*overflow\s*:\s*hidden\s*(?:;|$)/);
+  }
+});
+
 test('release JavaScript parses and preserves offline CSP and app boundaries', () => {
   for (const html of [readable, selfExtract]) {
     for (const match of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) new vm.Script(match[1]);

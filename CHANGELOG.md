@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5 - 2026-10-11
+
+- Lock background page scrolling while native Help or confirmation dialogs are open, preserving their existing layout, inner scrolling, and close behavior.
+- Add source and generated-release modal-lock regressions plus bilingual Help guidance.
+
 ## 1.0.4 - 2026-10-10
 
 - Localized the remaining editor, target-count, analysis-region/tab-list and toast-dismiss accessible labels in Japanese and English.

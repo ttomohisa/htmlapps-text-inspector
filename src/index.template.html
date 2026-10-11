@@ -45,6 +45,7 @@
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
+    html:has(dialog:modal), body:has(dialog:modal) { overflow: hidden; }
     button, textarea, input, select { font: inherit; }
     button { color: inherit; }
     button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible, [role="tab"]:focus-visible {
@@ -796,7 +797,7 @@
     </div>
     <div class="dialog-body" id="helpBody" tabindex="0" role="region" aria-labelledby="helpTitle">
       <!-- APP:HELP:BEGIN -->
-      <section class="help-section"><h3 data-i18n="helpHowTitle">使い方</h3><ul><li data-i18n="helpHow1">テキスト欄に文章を入力・貼り付けすると、すぐに各指標を更新します。</li><li data-i18n="helpHow2">「頻出語」の単語を押すと、X-Ray 内の該当箇所を強調します。</li><li data-i18n="helpHow3">文章チェックの項目を押すと、X-Ray の該当箇所へ直接ジャンプします。</li><li data-i18n="helpHow4">目標文字数を設定すると、残り文字数または超過文字数を表示します。スマホでは固定バー上部のミニメーターでも常に確認できます。</li><li data-i18n="helpHow5">スマホの固定バーから入力・分析へ移動でき、元に戻す / やり直すも実行できます。キーボードショートカットにも対応し、サンプル・クリアは実行前に確認します。</li></ul></section>
+      <section class="help-section"><h3 data-i18n="helpHowTitle">使い方</h3><ul><li data-i18n="helpHow1">テキスト欄に文章を入力・貼り付けすると、すぐに各指標を更新します。</li><li data-i18n="helpHow2">「頻出語」の単語を押すと、X-Ray 内の該当箇所を強調します。</li><li data-i18n="helpHow3">文章チェックの項目を押すと、X-Ray の該当箇所へ直接ジャンプします。</li><li data-i18n="helpHow4">目標文字数を設定すると、残り文字数または超過文字数を表示します。スマホでは固定バー上部のミニメーターでも常に確認できます。</li><li data-i18n="helpHow5">スマホの固定バーから入力・分析へ移動でき、元に戻す / やり直すも実行できます。キーボードショートカットにも対応し、サンプル・クリアは実行前に確認します。</li><li data-i18n="helpDialogScroll">ダイアログを開いている間は背景をスクロールせず、長い内容はダイアログ内でスクロールできます。閉じると通常のページスクロールに戻ります。</li></ul></section>
       <section class="help-section"><h3 data-i18n="download">TXT保存</h3><p data-i18n="helpDownload">「TXT保存」で入力した文章全体をUTF-8の text-inspector.txt として保存できます。改行・見えない文字・末尾の空白をそのまま含み、BOMや改行は追加しません。空欄の場合は空のファイルになります。</p></section>
       <section class="help-section"><h3 data-i18n="helpPrivacyTitle">プライバシー</h3><p data-i18n="helpPrivacy">入力した文章はサーバーへ送信しません。分析はすべてブラウザ内で行い、入力内容は復元用として localStorage に保存します。</p></section>
       <section class="help-section"><h3 data-i18n="helpNotesTitle">注意事項</h3><ul><li data-i18n="helpNotes1">単語分割、読了時間、文体判定は目安です。日本語の形態素解析を行う専用辞書は使用していません。</li><li data-i18n="helpNotes2">ブラウザのサイトデータを削除すると、自動保存した文章も消えます。重要な原稿の保管用途には使わないでください。</li><li data-i18n="helpNotes3">X-Ray の「長い文」は 80 文字超を機械的に示すもので、文章の良し悪しを断定するものではありません。</li></ul></section>
@@ -833,6 +834,7 @@
 
       const translations = {
         ja: {
+          helpDialogScroll: 'ダイアログを開いている間は背景をスクロールせず、長い内容はダイアログ内でスクロールできます。閉じると通常のページスクロールに戻ります。',
           inputLabel: '分析するテキスト', targetSelectLabel: '目標文字数', targetInputLabel: '自由入力の目標文字数', analysisRegionLabel: '文章分析', analysisTabsLabel: '分析項目', closeLabel: '閉じる',
           download: 'TXT保存', downloadStarted: 'ダウンロードを開始しました', downloadFailed: 'ダウンロードを開始できませんでした', helpDownload: '「TXT保存」で入力した文章全体をUTF-8の text-inspector.txt として保存できます。改行・見えない文字・末尾の空白をそのまま含み、BOMや改行は追加しません。空欄の場合は空のファイルになります。',
           brandMeta: '文章を数える、測る、見つける', introTitle: '文字数の先まで、文章を見える化。', introBody: 'テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。', localBadge: '完全ローカル処理',
@@ -848,6 +850,7 @@
           confirmSampleTitle: 'サンプルを読み込みますか？', confirmSampleMessage: '現在の文章をサンプル文章に置き換えます。あとから「元に戻す」で復元できます。', confirmSampleAction: 'サンプルを読み込む', confirmClearTitle: '文章をクリアしますか？', confirmClearMessage: '入力中の文章を空にします。あとから「元に戻す」で復元できます。', confirmClearAction: 'クリアする', redoDone: 'やり直しました', undoDone: '元に戻しました', copied: 'コピーしました', copyFailed: 'コピーできませんでした', cleared: '文章をクリアしました', sampleLoaded: 'サンプルを読み込みました', restored: '元に戻しました', analysisLimited: '20万 UTF-16 コード単位を超えたため、頻出語・X-Ray・文章チェック（見えない文字の件数を含む）は先頭20万単位のみを分析しています。'
         },
         en: {
+          helpDialogScroll: 'While a dialog is open, the background stays still and long content scrolls inside the dialog. Closing it restores normal page scrolling.',
           inputLabel: 'Text to analyze', targetSelectLabel: 'Target character count', targetInputLabel: 'Custom target character count', analysisRegionLabel: 'Text analysis', analysisTabsLabel: 'Analysis views', closeLabel: 'Close',
           download: 'Save .txt', downloadStarted: 'Download started', downloadFailed: 'Could not start download', helpDownload: 'Save .txt downloads the entire input as UTF-8 text-inspector.txt. It preserves line breaks, invisible characters and trailing whitespace, without adding a BOM or newline. Empty input creates an empty file.',
           brandMeta: 'Count, measure, and inspect your writing', introTitle: 'See beyond the character count.', introBody: 'Paste text to inspect counts, reading time, character mix, frequent words, long sentences, and writing-style tendencies in real time.', localBadge: 'Processed only in your browser',
