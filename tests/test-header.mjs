@@ -9,7 +9,7 @@ test('header uses canonical version and local-processing privacy copy', () => {
   assert.match(html, /class="version-badge">v(?:\{\{VERSION\}\}|1\.0\.5)<\/span>/);
   assert.match(html, /data-i18n="localBadge">完全ローカル処理<\/span>/);
   assert.match(html, /localBadge: '完全ローカル処理'/);
-  assert.match(html, /localBadge: 'Processed only in your browser'/);
+  assert.match(html, /localBadge: 'Fully local processing'/);
 });
 
 test('header language targets and help names stay localized through repeated clicks', () => {

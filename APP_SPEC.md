@@ -90,3 +90,9 @@ Current stable Chromium, Firefox, and Safari on desktop and mobile. Direct `file
 
 - Brand icon backgrounds use #16624f and a corner radius of exactly 25% of each background axis; the asset, embedded favicon, and responsive header remain consistent.
 - The header embeds the complete canonical `assets/favicon.svg` artwork and scales it uniformly. The local-processing badge uses the shared shield/check artwork from PDF Fill & Sign.
+
+## Informational footer and Help metadata
+
+- Hide only the informational footer at the existing 620px phone breakpoint; preserve functional bottom controls and existing badge visibility.
+- The equivalent English local-processing badge reads `Fully local processing`.
+- Existing lower build metadata is the final quiet Help content, with populated values and phone visibility preserved.
