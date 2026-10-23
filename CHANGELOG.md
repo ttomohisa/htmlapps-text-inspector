@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Standardize the phone informational footer and English local-processing label. Move lower build metadata to the end of Help.
+
 ## 1.0.5 - 2026-10-11
 
 - Lock background page scrolling while native Help or confirmation dialogs are open, preserving their existing layout, inner scrolling, and close behavior.
