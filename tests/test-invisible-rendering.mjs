@@ -32,7 +32,7 @@ function harness() {
   const tabs = ['checks', 'xray'].map(name => Object.assign(new Node('button'), { dataset: { tab: name } }));
   const panels = ['checks', 'xray'].map(name => Object.assign(new Node(), { id: `panel-${name}` }));
   const context = {
-    els,
+    els, $: () => null,
     document: { createElement: tag => new Node(tag), createTextNode: text => Object.assign(new Node(), { text }), querySelectorAll: selector => selector === '.tab' ? tabs : panels },
     window: { requestAnimationFrame: fn => frames.push(fn), matchMedia: () => ({ matches: true }), setTimeout: () => 1, clearTimeout() {}, isSecureContext: true }, navigator: { clipboard: { writeText: async text => { context.copied = text; } } }
   };

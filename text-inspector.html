@@ -765,6 +765,7 @@
       </div>
     </section>
 
+    <p id="copyError" role="status" aria-live="polite" style="color:#B3261E"></p>
     <section class="workspace" id="summarySection" aria-labelledby="summaryHeading">
       <div class="workspace-head">
         <div>
@@ -780,6 +781,7 @@
         <div class="stat-card"><strong class="stat-value" id="readingTime">0:00</strong><span class="stat-label" data-i18n="readTime">読了目安</span></div>
         <div class="stat-card"><strong class="stat-value" id="speechTime">0:00</strong><span class="stat-label" data-i18n="speechTime">音読目安</span></div>
       </div>
+      <p id="settingsSaveStatus" role="status" aria-live="polite"></p>
       <div class="target-box">
         <div class="target-summary">
           <div class="target-line"><strong class="target-result" id="targetResult">目標文字数なし</strong><span class="target-note" id="targetPercent"></span></div>
@@ -924,7 +926,7 @@
       <section class="help-section"><h3 data-i18n="helpNotesTitle">注意事項</h3><ul><li data-i18n="helpNotes1">単語分割、読了時間、文体判定は目安です。日本語の形態素解析を行う専用辞書は使用していません。</li><li data-i18n="helpNotes2">ブラウザのサイトデータを削除すると、自動保存した文章も消えます。重要な原稿の保管用途には使わないでください。</li><li data-i18n="helpNotes3">X-Ray の「長い文」は 80 文字超を機械的に示すもので、文章の良し悪しを断定するものではありません。</li></ul></section>
       <section class="help-section"><h3 data-i18n="invisibleTitle">見えない文字チェック</h3><p data-i18n="helpInvisible">ZWSP (U+200B)、NBSP (U+00A0)、NNBSP (U+202F)、WJ (U+2060)、BOM (U+FEFF) を種類・件数で確認できます。項目を押すと X-Ray の先頭の該当箇所へ移動します。「前へ」「次へ」で同じ種類の箇所を順に確認できます（現在位置 / 件数を表示、端で停止）。編集や履歴操作で移動状態はリセットします。マーカーは最大1,000件（選択した箇所を含む）。件数は分析範囲内の全件を数えます。</p><p data-i18n="invisibleNote">見えない文字には、改行制御や組版、ファイル先頭の BOM など意図した用途があります。絵文字や文字の結合に使う ZWJ / ZWNJ は対象外です。</p><p data-i18n="invisibleXrayNote">[ZWSP] などの表示は X-Ray 専用です。入力とコピーする原文は変わりません。</p></section>
       <!-- APP:HELP:END -->
-      <p class="help-build"><span id="buildInfo">v1.0.6 · 2026-10-27 11:05 UTC</span></p>
+      <p class="help-build"><span id="buildInfo">v1.0.6 · 2026-10-27 11:14 UTC</span></p>
     </div>
   </dialog>
 
@@ -992,8 +994,8 @@
       const jaStopWords = new Set('これ それ あれ ここ そこ ため よう もの こと ところ そして しかし また ただ ので のに から まで より など です ます でした ません する した して いる ある なる なった この その あの どの として について による により でも では という といった できる でき なく ない なる なら へ の が を に は と で も や か ね よ'.split(' '));
       const enStopWords = new Set('the a an and or but if then else of to in on at for from with without as by is are was were be been being it its this that these those i you he she we they me him her us them my your our their not no yes do does did done can could should would may might will just very more most less many much some any all each every into over under again also than so because while where when what who how'.split(' '));
 
-      Object.assign(translations.en, { downloadScope: 'Saves the entire input as UTF-8 text', clear: 'Clear input' });
-      Object.assign(translations.ja, { downloadScope: '入力した文章全体をUTF-8で保存します', clear: '入力をクリア' });
+      Object.assign(translations.en, { downloadScope: 'Saves the entire input as UTF-8 text', clear: 'Clear input', settingsFailed: 'Could not save target settings. Change the target to retry.', settingsSaved: 'Target settings saved in this browser', copyRecovery: 'Copy failed. Allow clipboard access and press Copy to retry, or save the text file.' });
+      Object.assign(translations.ja, { downloadScope: '入力した文章全体をUTF-8で保存します', clear: '入力をクリア', settingsFailed: '目標設定を保存できませんでした。目標を変更して再試行できます。', settingsSaved: '目標設定はこのブラウザーに保存済み', copyRecovery: 'コピーできませんでした。クリップボードを許可して「コピー」を再試行するか、文章をファイルに保存してください。' });
       const state = { lang: 'ja', target: 0, selectedWord: '', focusRange: null, invisibleNavigation: null, undo: null, saveTimer: null, saveState: 'dirty', savedAt: '', confirmSpec: null, confirmOpener: null, copying: false, analysisTimer: null, historyTimer: null, history: [], historyIndex: -1, applyingHistory: false, confirmResolver: null };
       const $ = (id) => document.getElementById(id);
       const els = {
@@ -1521,6 +1523,11 @@
       function renderSaveStatus() {
         BrowserKittyUI.setSaveStatus(els.saved, { mode: 'autosave', state: state.saveState, language: state.lang, time: state.savedAt });
       }
+      function renderRecoveryStatus() {
+        const settings = $('settingsSaveStatus'), copy = $('copyError');
+        if (settings) { settings.textContent = state.settingsSaveState ? t(state.settingsSaveState === 'error' ? 'settingsFailed' : 'settingsSaved') : ''; settings.setAttribute('data-bk-save-status', state.settingsSaveState || 'dirty'); }
+        if (copy) copy.textContent = state.copyError ? t('copyRecovery') : '';
+      }
       function scheduleSave() {
         window.clearTimeout(state.saveTimer); state.saveState = 'dirty'; renderSaveStatus();
         state.saveTimer = window.setTimeout(() => {
@@ -1557,9 +1564,9 @@
             if (!document.execCommand('copy')) throw new Error('copy failed');
             updateSelection();
           }
-          showToast(t('copied'));
-        } catch (_) { showToast(t('copyFailed')); }
-        finally { state.copying = false; BrowserKittyUI.setButtonState(els.copy, 'ready'); }
+          state.copyError = false; showToast(t('copied'));
+        } catch (_) { state.copyError = true; }
+        finally { state.copying = false; BrowserKittyUI.setButtonState(els.copy, 'ready'); renderRecoveryStatus(); }
       }
 
       function downloadText() {
@@ -1735,11 +1742,13 @@
         els.help.setAttribute('aria-label', t('helpTitle')); els.help.title = t('helpTitle'); els.helpClose.setAttribute('aria-label', state.lang === 'ja' ? '閉じる' : 'Close'); els.confirmClose.setAttribute('aria-label', state.lang === 'ja' ? '閉じる' : 'Close'); updateHistoryButtons();
         analyzeNow();
         renderSaveStatus();
+        renderRecoveryStatus();
         if (state.confirmSpec) { const c = state.confirmSpec; els.confirmTitle.textContent = t(c.titleKey); els.confirmMessage.textContent = t(c.messageKey); els.confirmAccept.textContent = t(c.actionKey); }
       }
 
       function saveSettings() {
-        try { const previous = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...previous, targetSelect: els.targetSelect.value, targetInput: els.targetInput.value })); } catch (_) { state.saveState = 'error'; renderSaveStatus(); }
+        try { const previous = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...previous, targetSelect: els.targetSelect.value, targetInput: els.targetInput.value })); state.settingsSaveState = 'saved'; } catch (_) { state.settingsSaveState = 'error'; }
+        renderRecoveryStatus();
       }
 
       function restore() {
@@ -1754,7 +1763,7 @@
         els.targetInput.hidden = els.targetSelect.value !== 'custom';
       }
 
-      els.input.addEventListener('input', () => { state.focusRange = null; resetInvisibleNavigation(); scheduleAnalysis(); scheduleHistory(); });
+      els.input.addEventListener('input', () => { if (state.undo) hideToast(); state.focusRange = null; resetInvisibleNavigation(); scheduleAnalysis(); scheduleHistory(); });
       els.invisiblePrevious.addEventListener('click', () => moveInvisibleOccurrence(-1));
       els.invisibleNext.addEventListener('click', () => moveInvisibleOccurrence(1));
       ['select', 'keyup', 'mouseup', 'touchend'].forEach((event) => els.input.addEventListener(event, updateSelection));

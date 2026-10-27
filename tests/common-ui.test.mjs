@@ -50,3 +50,32 @@ test('clipboard remains disabled during the real asynchronous operation', async 
   release(); await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.els.copy.disabled, false);
 });
+
+test('settings failure remains visible after a successful text autosave', () => {
+  const h = harness({text:'draft'}), put = h.context.localStorage.setItem;
+  h.context.localStorage.setItem = (key,value) => { if (key.endsWith(':settings:v1')) throw Error('settings quota'); put(key,value); };
+  h.els.targetSelect.value = '400'; h.els.targetSelect.dispatch('change');
+  h.edit('saved text'); h.advance(500);
+  const status = h.document.getElementById('settingsSaveStatus');
+  assert.ok(status, 'separate settings status'); assert.equal(status.attrs['data-bk-save-status'],'error');
+  assert.match(status.textContent,/settings/i); assert.equal(h.els.saved.attrs['data-bk-save-status'],'saved');
+  h.context.localStorage.setItem = put; h.els.targetSelect.dispatch('change');
+  assert.equal(status.attrs['data-bk-save-status'],'saved');
+});
+
+test('clipboard failure persists with translated recovery until a retry succeeds', async () => {
+  const h=harness({text:'keep me'});
+  h.context.navigator.clipboard.writeText=async()=>{throw Error('denied')};
+  h.els.copy.click(); await new Promise(resolve=>setImmediate(resolve)); h.advance(10000);
+  const status=h.document.getElementById('copyError'); assert.ok(status,'persistent error'); assert.match(status.textContent,/Copy/i);
+  h.els.language.click(); assert.match(status.textContent,/[\u3040-\u9fff]/); assert.equal(h.els.input.value,'keep me');
+  h.context.navigator.clipboard.writeText=async()=>{}; h.els.copy.click(); await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(status.textContent,'');
+});
+
+test('new typing invalidates Clear toast Undo before it can revert later work', async () => {
+  const h=harness({text:'original'}); h.els.clear.click(); h.els.confirmAccept.click(); await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(h.els.input.value,''); assert.ok(h.state.undo);
+  h.edit('new text'); assert.equal(h.state.undo,null); assert.equal(h.els.toast.classList.contains('show'),false);
+  h.els.toastAction.click(); assert.equal(h.els.input.value,'new text');
+});
