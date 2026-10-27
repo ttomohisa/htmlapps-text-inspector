@@ -7,6 +7,8 @@ $outPath = Join-Path $distDir 'index.html'
 
 $config = Get-Content -LiteralPath $configPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $html = Get-Content -LiteralPath $sourcePath -Raw -Encoding UTF8
+. (Join-Path $root 'scripts/embed-ui-conventions.ps1')
+$html = Expand-BrowserKittyUI -Template $html -ComponentsPath (Join-Path $root 'components')
 $timestamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd HH:mm UTC')
 $html = $html.Replace('{{VERSION}}', [string]$config.version).Replace('{{BUILD_TIMESTAMP}}', $timestamp)
 

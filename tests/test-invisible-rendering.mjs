@@ -17,6 +17,7 @@ class Node {
   appendChild(node) { this.append(node); return node; }
   replaceChildren(...nodes) { this.children.forEach(n => n.isConnected = false); this.children = nodes; this.text = ''; }
   setAttribute(key, value) { this.attrs[key] = value; }
+  removeAttribute(key) { delete this.attrs[key]; }
   addEventListener(event, fn) { this.events[event] = fn; }
   focus() { this.focused = true; }
   scrollIntoView() { this.scrolled = true; }
@@ -25,7 +26,7 @@ class Node {
 }
 function harness() {
   const ids = ['invisibleNavigation', 'invisibleNavigationLabel', 'invisiblePosition', 'invisiblePrevious', 'invisibleNext', 'xrayPreview', 'xrayMarkerNote', 'selectedWordLegend', 'checksList', 'styleResult', 'frequencyList', 'frequencyNote', 'undoButton', 'redoButton', 'mobileUndoButton', 'mobileRedoButton', 'toast', 'toastMessage', 'toastAction', 'saved', 'confirmDialog', 'confirmTitle', 'confirmMessage', 'confirmAccept', 'confirmCancel', 'selection'];
-  const els = Object.fromEntries(ids.map(id => [id, new Node()]));
+  const els = Object.fromEntries([...ids, 'copy'].map(id => [id, new Node()]));
   els.input = Object.assign(new Node('textarea'), { value: '', select() { this.selected = this.value; this.selectionStart = 0; this.selectionEnd = this.value.length; } });
   const frames = [];
   const tabs = ['checks', 'xray'].map(name => Object.assign(new Node('button'), { dataset: { tab: name } }));
@@ -37,6 +38,7 @@ function harness() {
   };
   const code = script.slice(script.indexOf("'use strict';"), script.indexOf('      const $ ='))
     + script.slice(script.indexOf('      function t('), script.indexOf('      function mountMobileBottomBar('));
+  vm.runInNewContext(readFileSync(new URL('../components/ui-conventions.js', import.meta.url), 'utf8'), context);
   const api = vm.runInNewContext(`${code}; ({ state, buildAnalysis, renderChecks, renderXray, copyText, initializeHistory, replaceText, undoText, redoText, confirmAndReplace, finishConfirm })`, context);
   api.state.lang = 'en';
   return { ...api, context, els, tabs, frames, flushFrames() { while (frames.length) frames.shift()(); } };

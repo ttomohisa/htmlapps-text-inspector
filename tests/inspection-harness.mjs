@@ -5,10 +5,11 @@ export const html = readFileSync(process.env.TEXT_INSPECTOR_HTML || new URL('../
 
 // Executes the complete app, including its actual event bindings and debounce.
 // This adapter checks DOM state, not native keyboard behavior, selection or layout.
-export function harness({ text = '', markerLimit, analysisLimit } = {}) {
+export function harness({ text = '', markerLimit, analysisLimit, url = '', languages = [], sharedLanguage, failStorage = false } = {}) {
   const frames = [];
   const timers = new Map();
   const storage = new Map([['browser-kitty:text-inspector:v1', text], ['browser-kitty:text-inspector:settings:v1', '{"lang":"en"}']]);
+  if (sharedLanguage) storage.set('browser-kitty:ui-language:v1', sharedLanguage);
   const downloads = [], blobUrls = new Map(), revokedUrls = [];
   let urlId = 0;
   let now = 0;
@@ -67,15 +68,17 @@ export function harness({ text = '', markerLimit, analysisLimit } = {}) {
   byId.targetSelect.value = '0';
   const context = {
     Blob,
-    URL: { createObjectURL: blob => { const url = `blob:test-${++urlId}`; blobUrls.set(url, blob); return url; }, revokeObjectURL: url => { revokedUrls.push(url); blobUrls.delete(url); } },
-    document, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
+    URL: Object.assign(class extends URL {}, { createObjectURL: blob => { const url = `blob:test-${++urlId}`; blobUrls.set(url, blob); return url; }, revokeObjectURL: url => { revokedUrls.push(url); blobUrls.delete(url); } }),
+    document, location: { href: url }, history: { replaceState() {} }, localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => { if (failStorage) throw Error('quota'); storage.set(key, value); } },
     window: {
       isSecureContext: true, matchMedia: () => ({ matches: true }), requestAnimationFrame: fn => frames.push(fn),
       setTimeout: (fn, delay) => { const id = ++timerId; timers.set(id, { fn, at: now + delay }); return id; },
       clearTimeout: id => timers.delete(id)
     },
-    navigator: { clipboard: { writeText: async value => { context.copied = value; } } }
+    navigator: { languages, clipboard: { writeText: async value => { context.copied = value; } } }
   };
+  const sharedPath = new URL('../components/ui-conventions.js', import.meta.url);
+  try { vm.runInNewContext(readFileSync(sharedPath, 'utf8'), context); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   let script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
   if (markerLimit) script = script.replace('const MAX_INVISIBLE_MARKERS = 1000;', `const MAX_INVISIBLE_MARKERS = ${markerLimit};`);
   if (analysisLimit) script = script.replace('const MAX_LIVE_ANALYSIS = 200000;', `const MAX_LIVE_ANALYSIS = ${analysisLimit};`);

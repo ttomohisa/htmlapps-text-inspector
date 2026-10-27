@@ -26,7 +26,7 @@ test('header language targets and help names stay localized through repeated cli
     assert.equal(h.els.help.title, h.els.help.attrs['aria-label']);
     assert.equal(h.els.input.value, original);
     assert.equal(h.storage.get('browser-kitty:text-inspector:v1'), original);
-    assert.equal(JSON.parse(h.storage.get('browser-kitty:text-inspector:settings:v1')).lang, language);
+    assert.equal(JSON.parse(h.storage.get('browser-kitty:text-inspector:settings:v1')).lang, 'en');
     h.els.language.click();
   }
 });

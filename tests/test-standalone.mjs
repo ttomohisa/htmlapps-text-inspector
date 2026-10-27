@@ -15,7 +15,7 @@ test('root download is the exact readable release', () => {
 test('standalone output matches the current source template', () => {
   const config = JSON.parse(read('app.config.json'));
   const report = JSON.parse(read('dist/build-size-report.json').replace(/^\uFEFF/, ''));
-  const expected = read('src/index.template.html').replaceAll('{{VERSION}}', config.version).replaceAll('{{BUILD_TIMESTAMP}}', report.generatedAt);
+  const expected = read('src/index.template.html').replaceAll('{{VERSION}}', config.version).replaceAll('{{BUILD_TIMESTAMP}}', report.generatedAt).replace('__BK_UI_CSS__', read('components/ui-conventions.css')).replace('__BK_UI_JS__', read('components/ui-conventions.js'));
   assert.equal(readable, expected, 'rebuild stale standalone artifacts');
   assert.equal(Buffer.byteLength(readable), report.readableBytes);
   assert.equal(Buffer.byteLength(selfExtract), report.selfExtractBytes);

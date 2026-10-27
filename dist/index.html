@@ -582,6 +582,118 @@
       .header-actions { flex: 0 0 auto; }
     }
   </style>
+<style>/* Browser Kitty shared UI conventions 1.0.0. Explicit opt-in only. */
+[data-bk-button] { min-height: 44px; border: 1px solid #BFC1BA; background: #FFFFFF; color: #202823; cursor: pointer; opacity: 1; }
+[data-bk-button][data-bk-variant="primary"] { background: #16624F; border-color: #16624F; color: #FFFFFF; }
+[data-bk-button][data-bk-variant="primary"]:hover:not(:disabled) { background: #0E503F; border-color: #0E503F; }
+[data-bk-button][data-bk-variant="secondary"] { background: #FFFFFF; color: #202823; border-color: #BFC1BA; }
+[data-bk-button][data-bk-variant="secondary"]:hover:not(:disabled) { background: #FFFFFF; color: #202823; border-color: #BFC1BA; }
+[data-bk-button][data-bk-variant="danger"] { background: #B3261E; border-color: #B3261E; color: #FFFFFF; }
+[data-bk-button][data-bk-variant="danger"]:hover:not(:disabled) { background: #8C1D18; border-color: #8C1D18; color: #FFFFFF; }
+[data-bk-button]:focus-visible, [data-bk-header-action]:focus-visible { outline: 2px solid #16624F; outline-offset: 2px; }
+[data-bk-button]:disabled, [data-bk-button]:disabled:hover, [data-bk-button]:disabled:active { background: #E7EBE7; color: #59635C; border-color: #E7EBE7; cursor: not-allowed; opacity: 1; transform: none; }
+[data-bk-button][data-bk-state="busy"], [data-bk-button][data-bk-state="stopping"], [data-bk-button][data-bk-state="busy"]:hover, [data-bk-button][data-bk-state="stopping"]:hover { background: #E1F0EA; color: #16624F; border-color: #E1F0EA; cursor: wait; opacity: 1; }
+[data-bk-button][data-bk-state="busy"]::before, [data-bk-button][data-bk-state="stopping"]::before { content: ''; display: inline-block; width: .85em; height: .85em; margin-inline-end: .45em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; vertical-align: -.1em; animation: bk-ui-spin .85s linear infinite; }
+[data-bk-header-action] { min-width: 44px; min-height: 44px; }
+[data-bk-save-status] { display: block; font-size: .85rem; color: #59635C; overflow-wrap: anywhere; }
+[data-bk-save-status="error"] { color: #B3261E; }
+@keyframes bk-ui-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { [data-bk-button] { transition: none; } [data-bk-button]::before { animation: none !important; } }
+</style>
+<script data-bk-ui-version="1.0.0">/* Browser Kitty shared UI conventions 1.0.0. Build-time embed only; no network. */
+(function (root) {
+  'use strict';
+  const version = '1.0.0';
+  const languageKey = 'browser-kitty:ui-language:v1';
+  const validLanguage = value => value === 'ja' || value === 'en';
+  function safely(read, fallback) { try { return read(); } catch (_) { return fallback; } }
+  function dependency(options, key, readDefault, fallback) {
+    return safely(() => Object.prototype.hasOwnProperty.call(options, key) ? options[key] : readDefault(), fallback);
+  }
+  function storageFrom(options) { return dependency(options, 'storage', () => root.localStorage, null); }
+  function urlFrom(options) { return dependency(options, 'url', () => root.location.href, ''); }
+  function parseUrl(value) { return safely(() => new URL(String(value), 'https://browser-kitty.invalid/'), null); }
+  function readLanguage(storage, key) { return safely(() => storage && storage.getItem(key), null); }
+  function resolveLanguage(options = {}) {
+    const url = parseUrl(urlFrom(options));
+    const query = url && url.searchParams.get('lang');
+    if (validLanguage(query)) return query;
+    const storage = storageFrom(options);
+    const shared = readLanguage(storage, languageKey);
+    if (validLanguage(shared)) return shared;
+    for (const key of options.legacyKeys || []) {
+      const legacy = readLanguage(storage, key);
+      if (validLanguage(legacy)) return legacy;
+    }
+    const languages = dependency(options, 'languages', () => root.navigator.languages || [root.navigator.language], []);
+    for (const value of languages || []) {
+      const language = String(value).toLowerCase().split('-')[0];
+      if (validLanguage(language)) return language;
+    }
+    return 'en';
+  }
+  function chooseLanguage(language, options = {}) {
+    if (!validLanguage(language)) throw new TypeError('Unsupported language: ' + language);
+    const storage = storageFrom(options);
+    const persisted = safely(() => { if (!storage) return false; storage.setItem(languageKey, language); return true; }, false);
+    const url = parseUrl(urlFrom(options));
+    const history = dependency(options, 'history', () => root.history, null);
+    const urlUpdated = safely(() => {
+      if (!url || !url.searchParams.has('lang') || !history) return false;
+      url.searchParams.set('lang', language);
+      history.replaceState(history.state, '', url.href);
+      return true;
+    }, false);
+    return { language, persisted, urlUpdated };
+  }
+  const copy = {
+    en: {
+      sessionOnly: 'Your work will be lost when this tab closes',
+      manualSave: 'Your work is not saved automatically. Save a project file to continue editing later.',
+      dirty: 'Unsaved changes', saving: 'Saving…', saved: 'Saved in this browser',
+      saveFailed: 'Could not save in this browser', downloadStarted: 'Download started',
+      previousResult: 'Previous result', stopping: 'Stopping…', stopProcessing: 'Stop processing', cancel: 'Cancel',
+      languageSessionOnly: 'Language applies to this screen only'
+    },
+    ja: {
+      sessionOnly: '作業内容はこのタブを閉じると消えます',
+      manualSave: '自動保存されません。続きの編集には作業ファイルを保存してください',
+      dirty: '未保存の変更があります', saving: '保存しています…', saved: 'このブラウザーに保存済み',
+      saveFailed: 'このブラウザーに保存できませんでした', downloadStarted: '保存を開始しました',
+      previousResult: '前回の結果', stopping: '中止しています…', stopProcessing: '処理を中止', cancel: 'キャンセル',
+      languageSessionOnly: '言語はこの画面だけに適用されます'
+    }
+  };
+  function text(key, language = 'en', values = {}) {
+    const locale = validLanguage(language) ? language : 'en';
+    let value = copy[locale][key] || copy.en[key] || String(key);
+    if (key === 'saved' && values.time) value += (locale === 'ja' ? '・' : ' · ') + String(values.time);
+    return value.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, name) => Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : match);
+  }
+  function setButtonState(button, state) {
+    if (!['ready', 'unavailable', 'busy', 'stopping'].includes(state)) throw new TypeError('Unsupported button state: ' + state);
+    button.disabled = state !== 'ready';
+    button.setAttribute('data-bk-state', state);
+    if (state === 'busy' || state === 'stopping') button.setAttribute('aria-busy', 'true');
+    else button.removeAttribute('aria-busy');
+  }
+  function setSaveStatus(element, options = {}) {
+    const mode = options.mode || 'session';
+    const state = options.state || 'dirty';
+    if (!['session', 'manual', 'autosave'].includes(mode)) throw new TypeError('Unsupported save mode: ' + mode);
+    if (!['dirty', 'saving', 'saved', 'error'].includes(state)) throw new TypeError('Unsupported save state: ' + state);
+    const key = mode === 'session' ? 'sessionOnly' : mode === 'manual' ? 'manualSave' : state === 'error' ? 'saveFailed' : state;
+    element.textContent = text(key, options.language, { time: options.time });
+    element.setAttribute('role', 'status');
+    element.setAttribute('aria-live', 'polite');
+    element.setAttribute('data-bk-save-status', state);
+    element.setAttribute('data-bk-save-mode', mode);
+  }
+  const api = Object.freeze({ version, languageKey, resolveLanguage, chooseLanguage, text, setButtonState, setSaveStatus });
+  root.BrowserKittyUI = api;
+  if (typeof module === 'object' && module.exports) module.exports = api;
+})(typeof globalThis === 'object' ? globalThis : window);
+</script>
 </head>
 <body class="has-mobile-bottom-bar">
   <!-- APP:BEGIN -->
@@ -604,8 +716,8 @@
         </div>
       </div>
       <div class="header-actions">
-        <button type="button" class="language-button" id="languageButton" aria-label="Switch to English" title="Switch to English">EN</button>
-        <button type="button" class="icon-button header-icon-button" id="helpButton" aria-label="使い方と注意事項" title="使い方と注意事項">
+        <button data-bk-header-action  type="button" class="language-button" id="languageButton" aria-label="Switch to English" title="Switch to English">EN</button>
+        <button data-bk-header-action  type="button" class="icon-button header-icon-button" id="helpButton" aria-label="使い方と注意事項" title="使い方と注意事項">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.7 9a2.45 2.45 0 0 1 4.75.8c0 1.8-2.45 2.1-2.45 3.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
         </button>
       </div>
@@ -634,20 +746,21 @@
       <textarea id="textInput" spellcheck="true" data-i18n-placeholder="placeholder" placeholder="ここに文章を入力、または貼り付け…" aria-label="分析するテキスト" data-i18n-aria-label="inputLabel"></textarea>
       <div class="text-meta">
         <span class="selection-info" id="selectionInfo" data-i18n="noSelection">選択範囲なし</span>
-        <span class="saved-indicator" id="savedIndicator" data-i18n="saved">保存済み</span>
+        <span id="savedIndicator"></span>
       </div>
       <div class="toolbar">
+        <label><span data-i18n="filename">ファイル名</span> <input id="downloadFilename" value="text-inspector.txt" data-i18n-aria-label="filename"></label><span data-i18n="downloadScope"></span>
         <div class="button-row">
-          <button class="button primary" type="button" id="copyButton"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="10" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M15 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8"/></svg><span data-i18n="copy">コピー</span></button>
-          <button class="button" type="button" id="downloadButton"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></svg><span data-i18n="download">TXT保存</span></button>
-          <button class="button" type="button" id="sampleButton" data-i18n="sample">サンプル</button>
+          <button data-bk-button data-bk-variant="primary"  class="button primary" type="button" id="copyButton"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="10" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M15 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.8"/></svg><span data-i18n="copy">コピー</span></button>
+          <button data-bk-button data-bk-variant="secondary"  class="button" type="button" id="downloadButton"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></svg><span data-i18n="download">TXT保存</span></button>
+          <button data-bk-button data-bk-variant="secondary"  class="button" type="button" id="sampleButton" data-i18n="sample">サンプル</button>
         </div>
         <div class="toolbar-actions">
           <div class="history-controls" role="group" aria-label="編集履歴" data-i18n-aria-label="historyGroup">
-            <button class="button history-button" type="button" id="undoButton" disabled data-i18n-title="undoShortcut" title="元に戻す (Ctrl/Cmd+Z)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 8 5 12l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12h7a6 6 0 0 1 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-i18n="undo">元に戻す</span></button>
-            <button class="button history-button" type="button" id="redoButton" disabled data-i18n-title="redoShortcut" title="やり直す (Ctrl/Cmd+Shift+Z / Ctrl+Y)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 8 4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 12h-7a6 6 0 0 0-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-i18n="redo">やり直す</span></button>
+            <button data-bk-button data-bk-variant="secondary"  class="button history-button" type="button" id="undoButton" disabled data-i18n-title="undoShortcut" title="元に戻す (Ctrl/Cmd+Z)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 8 5 12l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12h7a6 6 0 0 1 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-i18n="undo">元に戻す</span></button>
+            <button data-bk-button data-bk-variant="secondary"  class="button history-button" type="button" id="redoButton" disabled data-i18n-title="redoShortcut" title="やり直す (Ctrl/Cmd+Shift+Z / Ctrl+Y)"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 8 4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 12h-7a6 6 0 0 0-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span data-i18n="redo">やり直す</span></button>
           </div>
-          <button class="button subtle-danger" type="button" id="clearButton" data-i18n="clear">クリア</button>
+          <button data-bk-button data-bk-variant="danger"  class="button subtle-danger" type="button" id="clearButton" data-i18n="clear">クリア</button>
         </div>
       </div>
     </section>
@@ -733,9 +846,9 @@
         <p class="freq-note" id="xrayMarkerNote" hidden></p>
         <div class="invisible-navigation" id="invisibleNavigation" role="group" aria-labelledby="invisibleNavigationLabel" hidden>
           <span class="invisible-navigation-label" id="invisibleNavigationLabel"></span>
-          <button type="button" class="button" id="invisiblePrevious" data-i18n="invisiblePrevious" data-i18n-aria-label="invisiblePreviousLabel" aria-label="同じ種類の見えない文字の前の箇所" disabled>前へ</button>
+          <button data-bk-button data-bk-variant="secondary"  type="button" class="button" id="invisiblePrevious" data-i18n="invisiblePrevious" data-i18n-aria-label="invisiblePreviousLabel" aria-label="同じ種類の見えない文字の前の箇所" disabled>前へ</button>
           <span class="invisible-position" id="invisiblePosition" role="status" aria-live="polite" aria-atomic="true"></span>
-          <button type="button" class="button" id="invisibleNext" data-i18n="invisibleNext" data-i18n-aria-label="invisibleNextLabel" aria-label="同じ種類の見えない文字の次の箇所" disabled>次へ</button>
+          <button data-bk-button data-bk-variant="secondary"  type="button" class="button" id="invisibleNext" data-i18n="invisibleNext" data-i18n-aria-label="invisibleNextLabel" aria-label="同じ種類の見えない文字の次の箇所" disabled>次へ</button>
         </div>
         <div class="xray-preview" id="xrayPreview"><div class="empty-state" data-i18n="emptyPreview">テキストを入力するとここに表示されます。</div></div>
       </div>
@@ -766,11 +879,11 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 18V9M10 18V5M15 18v-7M20 18V8"/></svg>
         <span data-i18n="mobileNavAnalysis">分析</span>
       </button>
-      <button class="app-mobile-bottom-item" id="mobileUndoButton" type="button" data-mobile-key="undo" data-mobile-action="undo" disabled>
+      <button data-bk-button data-bk-variant="secondary"  class="app-mobile-bottom-item" id="mobileUndoButton" type="button" data-mobile-key="undo" data-mobile-action="undo" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 8 5 12l4 4"/><path d="M6 12h7a6 6 0 0 1 6 6"/></svg>
         <span data-i18n="mobileNavUndo">戻す</span>
       </button>
-      <button class="app-mobile-bottom-item" id="mobileRedoButton" type="button" data-mobile-key="redo" data-mobile-action="redo" disabled>
+      <button data-bk-button data-bk-variant="secondary"  class="app-mobile-bottom-item" id="mobileRedoButton" type="button" data-mobile-key="redo" data-mobile-action="redo" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 8 4 4-4 4"/><path d="M18 12h-7a6 6 0 0 0-6 6"/></svg>
         <span data-i18n="mobileNavRedo">進む</span>
       </button>
@@ -793,8 +906,8 @@
       <p class="confirm-copy" id="confirmMessage"></p>
     </div>
     <div class="confirm-actions">
-      <button class="button" type="button" id="confirmCancel" data-i18n="cancel">キャンセル</button>
-      <button class="button" type="button" id="confirmAccept">実行</button>
+      <button data-bk-button data-bk-variant="secondary"  class="button" type="button" id="confirmCancel" data-i18n="cancel">キャンセル</button>
+      <button data-bk-button data-bk-variant="secondary"  class="button" type="button" id="confirmAccept">実行</button>
     </div>
   </dialog>
 
@@ -811,7 +924,7 @@
       <section class="help-section"><h3 data-i18n="helpNotesTitle">注意事項</h3><ul><li data-i18n="helpNotes1">単語分割、読了時間、文体判定は目安です。日本語の形態素解析を行う専用辞書は使用していません。</li><li data-i18n="helpNotes2">ブラウザのサイトデータを削除すると、自動保存した文章も消えます。重要な原稿の保管用途には使わないでください。</li><li data-i18n="helpNotes3">X-Ray の「長い文」は 80 文字超を機械的に示すもので、文章の良し悪しを断定するものではありません。</li></ul></section>
       <section class="help-section"><h3 data-i18n="invisibleTitle">見えない文字チェック</h3><p data-i18n="helpInvisible">ZWSP (U+200B)、NBSP (U+00A0)、NNBSP (U+202F)、WJ (U+2060)、BOM (U+FEFF) を種類・件数で確認できます。項目を押すと X-Ray の先頭の該当箇所へ移動します。「前へ」「次へ」で同じ種類の箇所を順に確認できます（現在位置 / 件数を表示、端で停止）。編集や履歴操作で移動状態はリセットします。マーカーは最大1,000件（選択した箇所を含む）。件数は分析範囲内の全件を数えます。</p><p data-i18n="invisibleNote">見えない文字には、改行制御や組版、ファイル先頭の BOM など意図した用途があります。絵文字や文字の結合に使う ZWJ / ZWNJ は対象外です。</p><p data-i18n="invisibleXrayNote">[ZWSP] などの表示は X-Ray 専用です。入力とコピーする原文は変わりません。</p></section>
       <!-- APP:HELP:END -->
-      <p class="help-build"><span id="buildInfo">v1.0.6 · 2026-10-27 03:16 UTC</span></p>
+      <p class="help-build"><span id="buildInfo">v1.0.6 · 2026-10-27 11:05 UTC</span></p>
     </div>
   </dialog>
 
@@ -845,7 +958,7 @@
         ja: {
 
           inputLabel: '分析するテキスト', targetSelectLabel: '目標文字数', targetInputLabel: '自由入力の目標文字数', analysisRegionLabel: '文章分析', analysisTabsLabel: '分析項目', closeLabel: '閉じる',
-          download: 'TXT保存', downloadStarted: 'ダウンロードを開始しました', downloadFailed: 'ダウンロードを開始できませんでした', helpDownload: '「TXT保存」で入力した文章全体をUTF-8の text-inspector.txt として保存できます。改行・見えない文字・末尾の空白をそのまま含み、BOMや改行は追加しません。空欄の場合は空のファイルになります。',
+          filename: 'ファイル名', download: '文章を保存 (.txt)', downloadStarted: 'ダウンロードを開始しました', downloadFailed: 'ダウンロードを開始できませんでした', helpDownload: '「TXT保存」で入力した文章全体をUTF-8の text-inspector.txt として保存できます。改行・見えない文字・末尾の空白をそのまま含み、BOMや改行は追加しません。空欄の場合は空のファイルになります。',
           brandMeta: '文章を数える、測る、見つける', introTitle: '文字数の先まで、文章を見える化。', introBody: 'テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。', localBadge: '完全ローカル処理',
           inputTitle: 'テキスト', inputHint: '入力内容はこの端末のブラウザに自動保存されます。', placeholder: 'ここに文章を入力、または貼り付け…', noSelection: '選択範囲なし', selection: '選択: {chars}文字 / {words}単語', saved: '保存済み', copy: 'コピー', sample: 'サンプル', clear: 'クリア', undo: '元に戻す', redo: 'やり直す', historyGroup: '編集履歴', undoShortcut: '元に戻す (Ctrl/Cmd+Z)', redoShortcut: 'やり直す (Ctrl/Cmd+Shift+Z / Ctrl+Y)', cancel: 'キャンセル',
           summaryTitle: 'ひと目でわかる', summaryHint: '入力と同時に更新されます。', chars: '文字', words: '単語', sentences: '文', paragraphs: '段落', readTime: '読了目安', speechTime: '音読目安', target: '目標', targetNone: 'なし', custom: '自由入力', targetOff: '目標文字数なし', targetRemain: 'あと {count} 文字', targetOver: '{count} 文字オーバー', targetExact: '目標ぴったり', targetPercent: '{percent}%',
@@ -861,7 +974,7 @@
         en: {
 
           inputLabel: 'Text to analyze', targetSelectLabel: 'Target character count', targetInputLabel: 'Custom target character count', analysisRegionLabel: 'Text analysis', analysisTabsLabel: 'Analysis views', closeLabel: 'Close',
-          download: 'Save .txt', downloadStarted: 'Download started', downloadFailed: 'Could not start download', helpDownload: 'Save .txt downloads the entire input as UTF-8 text-inspector.txt. It preserves line breaks, invisible characters and trailing whitespace, without adding a BOM or newline. Empty input creates an empty file.',
+          filename: 'Filename', download: 'Save text (.txt)', downloadStarted: 'Download started', downloadFailed: 'Could not start download', helpDownload: 'Save .txt downloads the entire input as UTF-8 text-inspector.txt. It preserves line breaks, invisible characters and trailing whitespace, without adding a BOM or newline. Empty input creates an empty file.',
           brandMeta: 'Count, measure, and inspect your writing', introTitle: 'See beyond the character count.', introBody: 'Paste text to inspect counts, reading time, character mix, frequent words, long sentences, and writing-style tendencies in real time.', localBadge: 'Fully local processing',
           inputTitle: 'Text', inputHint: 'Your input is autosaved in this browser on this device.', placeholder: 'Type or paste text here…', noSelection: 'No text selected', selection: 'Selection: {chars} chars / {words} words', saved: 'Saved', copy: 'Copy', sample: 'Sample', clear: 'Clear', undo: 'Undo', redo: 'Redo', historyGroup: 'Edit history', undoShortcut: 'Undo (Ctrl/Cmd+Z)', redoShortcut: 'Redo (Ctrl/Cmd+Shift+Z / Ctrl+Y)', cancel: 'Cancel',
           summaryTitle: 'At a glance', summaryHint: 'Updates while you type.', chars: 'Characters', words: 'Words', sentences: 'Sentences', paragraphs: 'Paragraphs', readTime: 'Read time', speechTime: 'Read aloud', target: 'Target', targetNone: 'None', custom: 'Custom', targetOff: 'No character target', targetRemain: '{count} characters left', targetOver: '{count} over target', targetExact: 'Target reached exactly', targetPercent: '{percent}%',
@@ -879,7 +992,9 @@
       const jaStopWords = new Set('これ それ あれ ここ そこ ため よう もの こと ところ そして しかし また ただ ので のに から まで より など です ます でした ません する した して いる ある なる なった この その あの どの として について による により でも では という といった できる でき なく ない なる なら へ の が を に は と で も や か ね よ'.split(' '));
       const enStopWords = new Set('the a an and or but if then else of to in on at for from with without as by is are was were be been being it its this that these those i you he she we they me him her us them my your our their not no yes do does did done can could should would may might will just very more most less many much some any all each every into over under again also than so because while where when what who how'.split(' '));
 
-      const state = { lang: 'ja', target: 0, selectedWord: '', focusRange: null, invisibleNavigation: null, undo: null, saveTimer: null, analysisTimer: null, historyTimer: null, history: [], historyIndex: -1, applyingHistory: false, confirmResolver: null };
+      Object.assign(translations.en, { downloadScope: 'Saves the entire input as UTF-8 text', clear: 'Clear input' });
+      Object.assign(translations.ja, { downloadScope: '入力した文章全体をUTF-8で保存します', clear: '入力をクリア' });
+      const state = { lang: 'ja', target: 0, selectedWord: '', focusRange: null, invisibleNavigation: null, undo: null, saveTimer: null, saveState: 'dirty', savedAt: '', confirmSpec: null, confirmOpener: null, copying: false, analysisTimer: null, historyTimer: null, history: [], historyIndex: -1, applyingHistory: false, confirmResolver: null };
       const $ = (id) => document.getElementById(id);
       const els = {
         input: $('textInput'), language: $('languageButton'), help: $('helpButton'), helpDialog: $('helpDialog'), helpBody: $('helpBody'), helpClose: $('helpClose'),
@@ -1403,11 +1518,16 @@
         scheduleSave();
       }
 
+      function renderSaveStatus() {
+        BrowserKittyUI.setSaveStatus(els.saved, { mode: 'autosave', state: state.saveState, language: state.lang, time: state.savedAt });
+      }
       function scheduleSave() {
-        window.clearTimeout(state.saveTimer);
-        els.saved.classList.remove('show');
+        window.clearTimeout(state.saveTimer); state.saveState = 'dirty'; renderSaveStatus();
         state.saveTimer = window.setTimeout(() => {
-          try { localStorage.setItem(STORAGE_KEY, els.input.value); els.saved.classList.add('show'); window.setTimeout(() => els.saved.classList.remove('show'), 1100); } catch (_) {}
+          state.saveState = 'saving'; renderSaveStatus();
+          try { localStorage.setItem(STORAGE_KEY, els.input.value); state.saveState = 'saved'; state.savedAt = new Date().toLocaleTimeString(state.lang); }
+          catch (_) { state.saveState = 'error'; }
+          renderSaveStatus();
         }, 350);
       }
 
@@ -1428,6 +1548,7 @@
       function hideToast() { els.toast.classList.remove('show'); state.undo = null; }
 
       async function copyText() {
+        if (state.copying) return; state.copying = true; BrowserKittyUI.setButtonState(els.copy, 'busy');
         const text = els.input.value;
         try {
           if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
@@ -1438,6 +1559,7 @@
           }
           showToast(t('copied'));
         } catch (_) { showToast(t('copyFailed')); }
+        finally { state.copying = false; BrowserKittyUI.setButtonState(els.copy, 'ready'); }
       }
 
       function downloadText() {
@@ -1446,7 +1568,7 @@
           const blob = new Blob([els.input.value], { type: 'text/plain;charset=utf-8' });
           url = URL.createObjectURL(blob);
           link = document.createElement('a');
-          link.href = url; link.download = 'text-inspector.txt';
+          link.href = url; link.download = $('downloadFilename').value.trim() || 'text-inspector.txt';
           document.body.appendChild(link);
           link.click();
           showToast(t('downloadStarted'));
@@ -1513,13 +1635,16 @@
       }
 
       function finishConfirm(result) {
-        const resolve = state.confirmResolver; state.confirmResolver = null;
+        const resolve = state.confirmResolver; state.confirmResolver = null; state.confirmSpec = null;
         if (els.confirmDialog.open) els.confirmDialog.close();
+        if (state.confirmOpener && state.confirmOpener.focus) state.confirmOpener.focus();
         if (resolve) resolve(result);
       }
 
       function askConfirm(titleKey, messageKey, actionKey, tone = '') {
         if (state.confirmResolver) finishConfirm(false);
+        state.confirmSpec = {titleKey, messageKey, actionKey}; state.confirmOpener = document.activeElement;
+        els.confirmAccept.setAttribute('data-bk-variant', tone === 'danger' ? 'danger' : 'primary');
         els.confirmTitle.textContent = t(titleKey); els.confirmMessage.textContent = t(messageKey); els.confirmAccept.textContent = t(actionKey);
         els.confirmAccept.classList.toggle('confirm-danger', tone === 'danger');
         els.confirmDialog.showModal();
@@ -1599,7 +1724,7 @@
       }
 
       function applyLanguage() {
-        document.documentElement.lang = state.lang;
+        document.documentElement.lang = state.lang; document.title = state.lang === 'ja' ? 'Text Inspector — 文章分析' : 'Text Inspector — Text analysis';
         document.querySelectorAll('[data-i18n]').forEach((node) => { node.textContent = t(node.dataset.i18n); });
         document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => { node.placeholder = t(node.dataset.i18nPlaceholder); });
         document.querySelectorAll('[data-i18n-title]').forEach((node) => { node.title = t(node.dataset.i18nTitle); });
@@ -1609,21 +1734,23 @@
         els.language.title = state.lang === 'ja' ? 'Switch to English' : '日本語に切り替え';
         els.help.setAttribute('aria-label', t('helpTitle')); els.help.title = t('helpTitle'); els.helpClose.setAttribute('aria-label', state.lang === 'ja' ? '閉じる' : 'Close'); els.confirmClose.setAttribute('aria-label', state.lang === 'ja' ? '閉じる' : 'Close'); updateHistoryButtons();
         analyzeNow();
-        saveSettings();
+        renderSaveStatus();
+        if (state.confirmSpec) { const c = state.confirmSpec; els.confirmTitle.textContent = t(c.titleKey); els.confirmMessage.textContent = t(c.messageKey); els.confirmAccept.textContent = t(c.actionKey); }
       }
 
       function saveSettings() {
-        try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ lang: state.lang, targetSelect: els.targetSelect.value, targetInput: els.targetInput.value })); } catch (_) {}
+        try { const previous = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...previous, targetSelect: els.targetSelect.value, targetInput: els.targetInput.value })); } catch (_) { state.saveState = 'error'; renderSaveStatus(); }
       }
 
       function restore() {
         try {
           const saved = localStorage.getItem(STORAGE_KEY); if (saved !== null) els.input.value = saved;
           const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
-          if (settings.lang === 'en' || settings.lang === 'ja') state.lang = settings.lang;
+
           if (['0', '140', '400', '800', '1000', 'custom'].includes(settings.targetSelect)) els.targetSelect.value = settings.targetSelect;
           if (settings.targetInput) els.targetInput.value = settings.targetInput;
         } catch (_) {}
+        state.lang = BrowserKittyUI.resolveLanguage({ storage: { getItem(key) { if (key === SETTINGS_KEY) { try { return JSON.parse(localStorage.getItem(key) || '{}').lang; } catch (_) { return null; } } return localStorage.getItem(key); } }, legacyKeys: [SETTINGS_KEY] });
         els.targetInput.hidden = els.targetSelect.value !== 'custom';
       }
 
@@ -1638,7 +1765,7 @@
       els.clear.addEventListener('click', () => confirmAndReplace('clear'));
       els.undoButton.addEventListener('click', undoText);
       els.redoButton.addEventListener('click', redoText);
-      els.language.addEventListener('click', () => { state.lang = state.lang === 'ja' ? 'en' : 'ja'; applyLanguage(); });
+      els.language.addEventListener('click', () => { state.lang = state.lang === 'ja' ? 'en' : 'ja'; const choice = BrowserKittyUI.chooseLanguage(state.lang); applyLanguage(); if (!choice.persisted) showToast(BrowserKittyUI.text('languageSessionOnly', state.lang)); });
       els.help.addEventListener('click', () => { els.helpDialog.showModal(); els.helpBody.scrollTop = 0; });
       els.helpClose.addEventListener('click', () => els.helpDialog.close());
       els.helpDialog.addEventListener('click', (event) => { if (event.target === els.helpDialog) els.helpDialog.close(); });
@@ -1647,6 +1774,8 @@
       els.confirmAccept.addEventListener('click', () => finishConfirm(true));
       els.confirmDialog.addEventListener('cancel', (event) => { event.preventDefault(); finishConfirm(false); });
       els.confirmDialog.addEventListener('click', (event) => { if (event.target === els.confirmDialog) finishConfirm(false); });
+      els.toast.addEventListener('focusin', () => window.clearTimeout(toastTimer));
+      els.toast.addEventListener('focusout', () => { toastTimer = window.setTimeout(hideToast, state.undo ? 6000 : 2600); });
       els.toastClose.addEventListener('click', hideToast);
       els.toastAction.addEventListener('click', () => { const action = state.undo; hideToast(); if (action) action(); });
       els.targetSelect.addEventListener('change', () => { els.targetInput.hidden = els.targetSelect.value !== 'custom'; const analysis = buildAnalysis(els.input.value); renderTarget(analysis.chars); renderMobileMeter(analysis); saveSettings(); if (!els.targetInput.hidden) els.targetInput.focus(); });
