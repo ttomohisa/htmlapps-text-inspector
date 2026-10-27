@@ -83,7 +83,7 @@ test('a download failure is localized, cleans up and leaves the editor usable', 
   };
   for (const message of ['Could not start download', 'ダウンロードを開始できませんでした']) {
     save.click();
-    assert.equal(h.els.toastMessage.textContent, message);
+    assert.ok(h.document.getElementById('downloadError').textContent.startsWith(message));
     assert.equal(h.document.body.children.length, 0);
     assert.equal(h.els.input.value, 'Keep me');
     h.els.language.click();

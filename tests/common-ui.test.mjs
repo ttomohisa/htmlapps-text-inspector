@@ -79,3 +79,11 @@ test('new typing invalidates Clear toast Undo before it can revert later work', 
   h.edit('new text'); assert.equal(h.state.undo,null); assert.equal(h.els.toast.classList.contains('show'),false);
   h.els.toastAction.click(); assert.equal(h.els.input.value,'new text');
 });
+test('download failure persists and translates independently of clipboard recovery', async()=>{
+ const h=harness({text:'retained'}),create=h.document.createElement;
+ h.document.createElement=tag=>{const node=create(tag);if(tag==='a')node.click=()=>{throw Error('blocked')};return node};
+ h.els.download.click();h.advance(10000);const status=h.document.getElementById('downloadError');assert.ok(status,'persistent download status');assert.match(status.textContent,/download/i);
+ h.els.language.click();assert.match(status.textContent,/[\u3040-\u9fff]/);
+ h.context.navigator.clipboard.writeText=async()=>{throw Error('denied')};h.els.copy.click();await new Promise(resolve=>setImmediate(resolve));
+ h.document.createElement=create;h.els.download.click();assert.equal(status.textContent,'');assert.notEqual(h.document.getElementById('copyError').textContent,'');assert.equal(h.els.input.value,'retained');
+});
