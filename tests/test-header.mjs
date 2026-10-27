@@ -5,8 +5,8 @@ import { harness, html } from './inspection-harness.mjs';
 
 test('header uses canonical version and local-processing privacy copy', () => {
   const config = JSON.parse(readFileSync(new URL('../app.config.json', import.meta.url), 'utf8'));
-  assert.equal(config.version, '1.0.5');
-  assert.match(html, /class="version-badge">v(?:\{\{VERSION\}\}|1\.0\.5)<\/span>/);
+  assert.equal(config.version, '1.0.6');
+  assert.match(html, /class="version-badge">v(?:\{\{VERSION\}\}|1\.0\.6)<\/span>/);
   assert.match(html, /data-i18n="localBadge">完全ローカル処理<\/span>/);
   assert.match(html, /localBadge: '完全ローカル処理'/);
   assert.match(html, /localBadge: 'Fully local processing'/);

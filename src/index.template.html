@@ -566,7 +566,6 @@
       .confirm-actions { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
     }
     @media (max-width: 370px) {
-      .version-badge { display: none; }
       .workspace h2 { font-size: 16px; }
       .target-select { max-width: 160px; }
     }
@@ -575,7 +574,14 @@
     }
       @media (max-width: 620px) { body > footer { display: none; } }
   .help-build{margin:18px 0 0;color:var(--muted);font-size:11px}
-</style>
+
+    @media (max-width: 600px) {
+      .brand-name { display: flex; align-items: center; }
+      .brand-name > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+      .version-badge { flex: 0 0 auto; white-space: nowrap; }
+      .header-actions { flex: 0 0 auto; }
+    }
+  </style>
 </head>
 <body class="has-mobile-bottom-bar">
   <!-- APP:BEGIN -->
@@ -593,7 +599,7 @@
           </svg>
         </div>
         <div class="brand-copy">
-          <h1 class="brand-name">Text Inspector <span class="version-badge">v{{VERSION}}</span></h1>
+          <h1 class="brand-name"><span class="brand-title">Text Inspector</span><span class="version-badge">v{{VERSION}}</span></h1>
           <p class="brand-meta" data-i18n="brandMeta">文章を数える、測る、見つける</p>
         </div>
       </div>

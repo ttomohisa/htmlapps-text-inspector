@@ -566,7 +566,6 @@
       .confirm-actions { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
     }
     @media (max-width: 370px) {
-      .version-badge { display: none; }
       .workspace h2 { font-size: 16px; }
       .target-select { max-width: 160px; }
     }
@@ -575,7 +574,14 @@
     }
       @media (max-width: 620px) { body > footer { display: none; } }
   .help-build{margin:18px 0 0;color:var(--muted);font-size:11px}
-</style>
+
+    @media (max-width: 600px) {
+      .brand-name { display: flex; align-items: center; }
+      .brand-name > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+      .version-badge { flex: 0 0 auto; white-space: nowrap; }
+      .header-actions { flex: 0 0 auto; }
+    }
+  </style>
 </head>
 <body class="has-mobile-bottom-bar">
   <!-- APP:BEGIN -->
@@ -593,7 +599,7 @@
           </svg>
         </div>
         <div class="brand-copy">
-          <h1 class="brand-name">Text Inspector <span class="version-badge">v1.0.5</span></h1>
+          <h1 class="brand-name"><span class="brand-title">Text Inspector</span><span class="version-badge">v1.0.6</span></h1>
           <p class="brand-meta" data-i18n="brandMeta">文章を数える、測る、見つける</p>
         </div>
       </div>
@@ -805,7 +811,7 @@
       <section class="help-section"><h3 data-i18n="helpNotesTitle">注意事項</h3><ul><li data-i18n="helpNotes1">単語分割、読了時間、文体判定は目安です。日本語の形態素解析を行う専用辞書は使用していません。</li><li data-i18n="helpNotes2">ブラウザのサイトデータを削除すると、自動保存した文章も消えます。重要な原稿の保管用途には使わないでください。</li><li data-i18n="helpNotes3">X-Ray の「長い文」は 80 文字超を機械的に示すもので、文章の良し悪しを断定するものではありません。</li></ul></section>
       <section class="help-section"><h3 data-i18n="invisibleTitle">見えない文字チェック</h3><p data-i18n="helpInvisible">ZWSP (U+200B)、NBSP (U+00A0)、NNBSP (U+202F)、WJ (U+2060)、BOM (U+FEFF) を種類・件数で確認できます。項目を押すと X-Ray の先頭の該当箇所へ移動します。「前へ」「次へ」で同じ種類の箇所を順に確認できます（現在位置 / 件数を表示、端で停止）。編集や履歴操作で移動状態はリセットします。マーカーは最大1,000件（選択した箇所を含む）。件数は分析範囲内の全件を数えます。</p><p data-i18n="invisibleNote">見えない文字には、改行制御や組版、ファイル先頭の BOM など意図した用途があります。絵文字や文字の結合に使う ZWJ / ZWNJ は対象外です。</p><p data-i18n="invisibleXrayNote">[ZWSP] などの表示は X-Ray 専用です。入力とコピーする原文は変わりません。</p></section>
       <!-- APP:HELP:END -->
-      <p class="help-build"><span id="buildInfo">v1.0.5 · 2026-10-23 10:53 UTC</span></p>
+      <p class="help-build"><span id="buildInfo">v1.0.6 · 2026-10-27 03:16 UTC</span></p>
     </div>
   </dialog>
 
