@@ -19,6 +19,7 @@ assert.equal(await page.locator(cfg.footer).isVisible(),width>cfg.bp,label+': in
 if(cfg.slug==='text-inspector'){await page.locator('#textInput').fill('Synthetic local text.');assert.equal(await page.locator('#textInput').inputValue(),'Synthetic local text.');}
 if(cfg.slug==='pomodoro-timer'&&width<=cfg.bp){await page.locator('#mobileToggleButton').click();await page.locator('#mobileToggleButton').click();assert.match(await page.locator('#timerTime').textContent(),/\d+:\d+/);}
 assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),label+': page width');
+if(file==='dist/index.html'&&[320,360,390,1360].includes(width))await page.screenshot({path:path.join(evidence,`main-${language}-${width}.png`)});
 await page.locator(cfg.open).click();const body=page.locator('#helpDialog .dialog-body');await body.evaluate(e=>{e.scrollTop=e.scrollHeight});
 if(cfg.slug==='pomodoro-timer'){assert.ok(await body.evaluate(e=>e.lastElementChild.contains(document.querySelector('#footerBuild'))));assert.match(await page.locator('#footerBuild').textContent(),/Build .*\d{4}/);assert.match(await page.locator('#footerDeps').textContent(),/Dependencies 0/);}
 if(cfg.slug==='text-inspector'){assert.equal(await page.locator('#buildInfo').count(),1);assert.match(await page.locator('#buildInfo').textContent(),/^v\d.*UTC$/);assert.ok(await body.evaluate(e=>e.lastElementChild.contains(document.querySelector('#buildInfo'))));}
