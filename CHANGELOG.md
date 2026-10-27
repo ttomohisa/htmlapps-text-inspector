@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.6 - 2026-10-27
+
+- Keep the header version visible on narrow smartphones without overlapping the app name or language/Help controls.
+
 ## Unreleased
 
 - Standardize the phone informational footer and English local-processing label. Move lower build metadata to the end of Help.

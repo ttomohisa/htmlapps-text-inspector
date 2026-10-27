@@ -13,3 +13,7 @@ try {
   Pop-Location
 }
 Write-Host 'check-repository: OK'
+
+# Header icons and version visibility across source and generated releases.
+& node (Join-Path $Root "scripts/test-header-ui.cjs")
+if ($LASTEXITCODE -ne 0) { throw "Header UI regression failed." }

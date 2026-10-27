@@ -96,3 +96,7 @@ Current stable Chromium, Firefox, and Safari on desktop and mobile. Direct `file
 - Hide only the informational footer at the existing 620px phone breakpoint; preserve functional bottom controls and existing badge visibility.
 - The equivalent English local-processing badge reads `Fully local processing`.
 - Existing lower build metadata is the final quiet Help content, with populated values and phone visibility preserved.
+
+## Header visibility
+
+Keep the header version visible on narrow smartphones without overlapping the app name or language/Help controls. Verify Japanese and English at 320px, 360px, 390px and desktop widths.
