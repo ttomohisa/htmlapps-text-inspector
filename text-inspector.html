@@ -102,7 +102,7 @@
       border-radius: 999px;
       color: var(--muted);
       background: var(--surface-muted);
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 650;
       vertical-align: 2px;
     }
@@ -144,6 +144,8 @@
     .icon-button:hover { border-color: var(--line-strong); background: var(--surface-hover); }
     .icon-button:active { transform: translateY(1px); }
     .icon-button svg { width: 18px; height: 18px; display: block; }
+    .dialog-close { display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; cursor: pointer; }
+    .dialog-close svg { width: 18px; height: 18px; }
     .header-icon-button {
       width: auto;
       height: auto;
@@ -178,13 +180,13 @@
       gap: 7px;
       flex: 0 0 auto;
       margin-top: 3px;
-      padding: 7px 10px;
-      border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
-      border-radius: 999px;
+      padding: 7px 0;
+      border: 0;
+      border-radius: 0;
       color: var(--accent);
-      background: var(--accent-soft);
+      background: transparent;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 500;
       white-space: nowrap;
     }
     .local-badge svg { width: 15px; height: 15px; display: block; }
@@ -385,7 +387,7 @@
     .style-meter { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 11px; border-radius: 10px; background: var(--surface-muted); }
     .style-meter strong { font-size: 12px; }
     .style-meter span { color: var(--muted); font-size: 11px; }
-    footer { width: min(1180px, 100%); margin: 0 auto; padding: 0 clamp(14px, 2.8vw, 30px) 34px; color: var(--muted); font-size: 11px; }
+    footer { width: min(1180px, 100%); margin: 0 auto; padding: 0 clamp(14px, 2.8vw, 30px) 34px; color: var(--muted); font-size: 12px; }
     .footer-line { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); padding-top: 17px; }
     dialog {
       width: min(620px, calc(100vw - 28px));
@@ -779,7 +781,7 @@
 
   <footer>
     <div class="footer-line">
-      <span>Browser Kitty · Text Inspector</span>
+      <span><span id="footerName">Text Inspector</span> · MIT License · <span data-i18n="footerPrivacy">文字数もチェックもブラウザー内で完結</span></span>
       
     </div>
   </footer>
@@ -801,7 +803,7 @@
   <dialog id="helpDialog" aria-labelledby="helpTitle">
     <div class="dialog-head">
       <h2 id="helpTitle" data-i18n="helpTitle">使い方と注意事項</h2>
-      <button type="button" class="icon-button" id="helpClose" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <button type="button" class="dialog-close" id="helpClose" data-i18n-aria-label="closeLabel" aria-label="閉じる"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
     </div>
     <div class="dialog-body" id="helpBody" tabindex="0" role="region" aria-labelledby="helpTitle">
       <!-- APP:HELP:BEGIN -->
@@ -811,7 +813,7 @@
       <section class="help-section"><h3 data-i18n="helpNotesTitle">注意事項</h3><ul><li data-i18n="helpNotes1">単語分割、読了時間、文体判定は目安です。日本語の形態素解析を行う専用辞書は使用していません。</li><li data-i18n="helpNotes2">ブラウザのサイトデータを削除すると、自動保存した文章も消えます。重要な原稿の保管用途には使わないでください。</li><li data-i18n="helpNotes3">X-Ray の「長い文」は 80 文字超を機械的に示すもので、文章の良し悪しを断定するものではありません。</li></ul></section>
       <section class="help-section"><h3 data-i18n="invisibleTitle">見えない文字チェック</h3><p data-i18n="helpInvisible">ZWSP (U+200B)、NBSP (U+00A0)、NNBSP (U+202F)、WJ (U+2060)、BOM (U+FEFF) を種類・件数で確認できます。項目を押すと X-Ray の先頭の該当箇所へ移動します。「前へ」「次へ」で同じ種類の箇所を順に確認できます（現在位置 / 件数を表示、端で停止）。編集や履歴操作で移動状態はリセットします。マーカーは最大1,000件（選択した箇所を含む）。件数は分析範囲内の全件を数えます。</p><p data-i18n="invisibleNote">見えない文字には、改行制御や組版、ファイル先頭の BOM など意図した用途があります。絵文字や文字の結合に使う ZWJ / ZWNJ は対象外です。</p><p data-i18n="invisibleXrayNote">[ZWSP] などの表示は X-Ray 専用です。入力とコピーする原文は変わりません。</p></section>
       <!-- APP:HELP:END -->
-      <p class="help-build"><span id="buildInfo">v1.0.6 · 2026-10-27 03:16 UTC</span></p>
+      <p class="help-build"><span id="buildInfo">v1.0.6 · 2026-11-13 16:28 UTC</span></p>
     </div>
   </dialog>
 
@@ -846,7 +848,7 @@
 
           inputLabel: '分析するテキスト', targetSelectLabel: '目標文字数', targetInputLabel: '自由入力の目標文字数', analysisRegionLabel: '文章分析', analysisTabsLabel: '分析項目', closeLabel: '閉じる',
           download: 'TXT保存', downloadStarted: 'ダウンロードを開始しました', downloadFailed: 'ダウンロードを開始できませんでした', helpDownload: '「TXT保存」で入力した文章全体をUTF-8の text-inspector.txt として保存できます。改行・見えない文字・末尾の空白をそのまま含み、BOMや改行は追加しません。空欄の場合は空のファイルになります。',
-          brandMeta: '文章を数える、測る、見つける', introTitle: '文字数の先まで、文章を見える化。', introBody: 'テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。', localBadge: '完全ローカル処理',
+          brandMeta: '文章を数える、測る、見つける', introTitle: '文字数の先まで、文章を見える化。', introBody: 'テキストを貼るだけで、文字数・読了時間・文字種・頻出語・長い文・文体の傾向までリアルタイムに確認できます。', localBadge: '完全ローカル処理', footerPrivacy: '文字数もチェックもブラウザー内で完結',
           inputTitle: 'テキスト', inputHint: '入力内容はこの端末のブラウザに自動保存されます。', placeholder: 'ここに文章を入力、または貼り付け…', noSelection: '選択範囲なし', selection: '選択: {chars}文字 / {words}単語', saved: '保存済み', copy: 'コピー', sample: 'サンプル', clear: 'クリア', undo: '元に戻す', redo: 'やり直す', historyGroup: '編集履歴', undoShortcut: '元に戻す (Ctrl/Cmd+Z)', redoShortcut: 'やり直す (Ctrl/Cmd+Shift+Z / Ctrl+Y)', cancel: 'キャンセル',
           summaryTitle: 'ひと目でわかる', summaryHint: '入力と同時に更新されます。', chars: '文字', words: '単語', sentences: '文', paragraphs: '段落', readTime: '読了目安', speechTime: '音読目安', target: '目標', targetNone: 'なし', custom: '自由入力', targetOff: '目標文字数なし', targetRemain: 'あと {count} 文字', targetOver: '{count} 文字オーバー', targetExact: '目標ぴったり', targetPercent: '{percent}%',
           tabOverview: '概要', tabComposition: '構成', tabFrequency: '頻出語', tabXray: 'X-Ray', tabChecks: '文章チェック', overviewTitle: '文章の基本情報', overviewDesc: 'カウント条件の違いもまとめて確認できます。', charsWithSpace: '文字数（空白込み）', charsNoSpace: '文字数（空白除外）', lines: '行数', avgSentence: '1文の平均', longestSentence: '最長の文', manuscript: '原稿用紙換算', uniqueWords: '異なる単語', topWord: '最多の単語', unitChars: '文字', sheetsApprox: '枚（約）', times: '{count}回',
@@ -862,7 +864,7 @@
 
           inputLabel: 'Text to analyze', targetSelectLabel: 'Target character count', targetInputLabel: 'Custom target character count', analysisRegionLabel: 'Text analysis', analysisTabsLabel: 'Analysis views', closeLabel: 'Close',
           download: 'Save .txt', downloadStarted: 'Download started', downloadFailed: 'Could not start download', helpDownload: 'Save .txt downloads the entire input as UTF-8 text-inspector.txt. It preserves line breaks, invisible characters and trailing whitespace, without adding a BOM or newline. Empty input creates an empty file.',
-          brandMeta: 'Count, measure, and inspect your writing', introTitle: 'See beyond the character count.', introBody: 'Paste text to inspect counts, reading time, character mix, frequent words, long sentences, and writing-style tendencies in real time.', localBadge: 'Fully local processing',
+          brandMeta: 'Count, measure, and inspect your writing', introTitle: 'See beyond the character count.', introBody: 'Paste text to inspect counts, reading time, character mix, frequent words, long sentences, and writing-style tendencies in real time.', localBadge: 'Fully local processing', footerPrivacy: 'Counting and checking stay in the browser',
           inputTitle: 'Text', inputHint: 'Your input is autosaved in this browser on this device.', placeholder: 'Type or paste text here…', noSelection: 'No text selected', selection: 'Selection: {chars} chars / {words} words', saved: 'Saved', copy: 'Copy', sample: 'Sample', clear: 'Clear', undo: 'Undo', redo: 'Redo', historyGroup: 'Edit history', undoShortcut: 'Undo (Ctrl/Cmd+Z)', redoShortcut: 'Redo (Ctrl/Cmd+Shift+Z / Ctrl+Y)', cancel: 'Cancel',
           summaryTitle: 'At a glance', summaryHint: 'Updates while you type.', chars: 'Characters', words: 'Words', sentences: 'Sentences', paragraphs: 'Paragraphs', readTime: 'Read time', speechTime: 'Read aloud', target: 'Target', targetNone: 'None', custom: 'Custom', targetOff: 'No character target', targetRemain: '{count} characters left', targetOver: '{count} over target', targetExact: 'Target reached exactly', targetPercent: '{percent}%',
           tabOverview: 'Overview', tabComposition: 'Composition', tabFrequency: 'Frequent words', tabXray: 'X-Ray', tabChecks: 'Checks', overviewTitle: 'Text basics', overviewDesc: 'See several counting methods together.', charsWithSpace: 'Characters (with spaces)', charsNoSpace: 'Characters (no whitespace)', lines: 'Lines', avgSentence: 'Average sentence', longestSentence: 'Longest sentence', manuscript: '400-char sheets', uniqueWords: 'Unique words', topWord: 'Top word', unitChars: 'chars', sheetsApprox: 'sheets (approx.)', times: '{count}×',
